@@ -1,0 +1,163 @@
+\documentclass[12pt]{report}
+%
+\def\magyarOptions{defaults=hu-min}
+%
+\usepackage[magyar]{babel}
+\usepackage{datatool}
+\usepackage{t1enc}
+\usepackage{times}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{psfrag}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue,anchorcolor=red,citecolor=cyan,filecolor=red,menucolor=red,runcolor=red,urlcolor=cyan]{hyperref}
+\usepackage{pifont}
+\usepackage{nameref}
+\usepackage{todonotes}
+\usepackage{listings}
+\usepackage{verbatim} 
+\usepackage{graphicx}
+\usepackage{wrapfig} 
+\usepackage{subfigure}
+\usepackage{etoolbox}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{listings}
+\lstset{basicstyle=\ttfamily,
+	showstringspaces=false,
+	commentstyle=\color{red},
+	keywordstyle=\color{blue}
+}
+%
+
+%
+\hoffset -1in
+\voffset -1in
+\oddsidemargin 20mm
+\textwidth 180mm
+\topmargin 1mm
+\headheight 10mm
+\headsep 5mm
+\textheight 250mm
+%
+\graphicspath{ {./IMGS/} }
+\lstset{language=Python}  
+\renewcommand{\baselinestretch}{0.9}
+
+
+\makeatletter
+\patchcmd{\chapter}{\if@openright\cleardoublepage\else\clearpage\fi}{}{}{}
+\makeatother
+
+
+\newcommand{\img}[1]{\includegraphics[height=0.25\textheight]{#1}}
+\begin{document}
+
+
+
+\chapter{Átnézett weboldalak}
+\section{Adatbázis ajánló}
+\url{http://homepages.inf.ed.ac.uk/rbf/CVonline/Imagedbase.htm#autodriving}
+\begin{itemize}
+	\item \url{http://www.cvl.isy.liu.se/en/research/datasets/amuse/}
+	\\	\img{1}\img{2}
+	\\\path{20130530_CVL_1_StraightForward.zip}
+	\\Fizetős a nagy adatbázis
+	\\De példák se jók
+	%
+	\item \url{http://apolloscape.auto/car_instance.html}
+	\\	\img{3}\img{4}
+	\\\img{5}
+	\\\path{3d_car_instance_sample.tar.gz}
+	\\5000 kép autó körvonallal, vannak hozzá programok
+	%
+	\item \url{http://apolloscape.auto/scene.html}
+	\\\img{6}
+	\\\path{road01_ins.tar.gz}
+	\\150 000 kép (videó) pixelszintű szegmentálással
+	\\25 kategória
+	\\vannak hozzá programok
+	%
+	\item \url{http://apolloscape.auto/lane_segmentation.html}
+	\\\img{7}
+	\\\path{lane_marking_examples.tar.gz}
+	\\110 000 kép (videó) pixelszintű útsáv szegmentálással
+	\\van hozzá kiértékelő program
+	%
+	\item \url{https://www.argoverse.org/data.html}
+	\\\img{8}\img{9}
+	\\\img{10}
+	\\\path{tracking_sample_v1.1.tar.gz}
+	\\113 15-30 másodperces videó (képekben) befoglaló téglatestekkel és 15 kategóriával
+	\\egyszerre 7 kamerával készült
+	%
+	\item \url{http://adas.cvc.uab.es/elektra/enigma-portfolio/cvc10-semantic-segmentation-dataset/}
+	\\\img{11}
+	\\\path{KITTI_SEMANTIC.zip}
+	\\pixel szintű szegmentáció
+	\\de csak 150 kép
+	%
+	\item \url{http://adas.cvc.uab.es/elektra/enigma-portfolio/item3/}
+	\\\img{12}
+	\\\path{CVC07.zip}
+	\\2500 játékban sétáló gyalogos befoglaló négyzettel és pixels zintű szegmentációval
+	\\nem valósághű 
+	%
+	\item \url{https://hci.iwr.uni-heidelberg.de/content/bosch-small-traffic-lights-dataset}
+	\\\img{13}
+	\\nem töltöttem le még
+	\\13427 kép
+	\\távoli jelzőlámpák befoglalónégyzettel
+	%
+	\item \url{https://drivingstereo-dataset.github.io/}
+	\\\img{14}
+	\\\path{DrivingStereo_demo_images.zip}
+	\\csak sztereoképek nincs annotálás
+	%
+	\item \url{https://boxy-dataset.com/boxy/}
+	\\\img{15}
+	\\még nem töltöttem le
+	\\rengeteg adat autókról
+	\\koordináta tengelyekkel párhuzamos élű befoglaló téglatesttel
+	\\\url{https://www.youtube.com/watch?v=HYO5Pthe3TE&feature=youtu.be}
+	%
+	\item \url{https://github.com/VRU-intention/casr}
+	\\\img{16}
+	\\kerékpárosok karjelzéseinek felismerése videóról
+	%
+	\item \url{http://rpg.ifi.uzh.ch/event_driving_datasets.html}
+	\\\img{17}
+	\\vezetés közben készített videók
+	\\nincs annotáció
+	%
+	\item \url{http://robots.engin.umich.edu/SoftwareData/Ford}
+	\\lézer kamera adatbázis
+	\\nem hiszem hogy hasznos számunkra
+	%
+	\item \url{https://usa.honda-ri.com/H3D}
+	\\lézer kamera adatbázis
+	\\nem hiszem hogy hasznos számunkra
+	%
+	\item \url{https://github.com/facebookresearch/House3D}
+	\\virtuális ház szegmentálva
+	\\nem hiszem hogy hasznos számunkra
+	%
+	\item \url{http://idd.insaan.iiit.ac.in/dataset/details/}
+	\\\img{18}
+	\\\img{19}
+	\\10 illetve 46 ezer kép
+	\\pixel szintű szegmentáció illetve befoglaló téglalap
+	%
+
+	
+	
+\end{itemize}
+
+
+\end{document}
+
