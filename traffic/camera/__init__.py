@@ -1,8 +1,37 @@
-from cv2 import VideoCapture, cvtColor, imshow, waitKey, destroyAllWindows
+from cv2 import VideoCapture, cvtColor
 from typing import Tuple, List
 from contextlib import contextmanager
 from numpy import ndarray
 from traffic.logging import root_logger
+from subprocess import Popen, PIPE, STDOUT
+import subprocess
+from tempfile import TemporaryFile
+
+
+@contextmanager
+def webcam_server():
+    MONORI = "W"
+    HORDOZHATO = "VodafoneMobileWiFi-AB7F5E"
+
+    def _get_ssid():
+        try:
+            return subprocess.check_output(["iwgetid"], encoding="utf-8").split('"')[1]
+        except Exception as e:
+            root_logger.exception(e)
+
+    SSID = _get_ssid()
+    if SSID == HORDOZHATO:
+        IP = "192.168.0.181"
+    else:
+        raise ConnectionError(f"Can't connect to {SSID}'s server")
+    try:
+        p = Popen(["droidcam-cli", "-v", IP, "4747"])
+    except FileNotFoundError as e:
+        root_logger.error("Restart the computer and install droidcam again.")
+        raise e
+    else:
+        yield
+    p.kill()
 
 
 class Camera(object):
