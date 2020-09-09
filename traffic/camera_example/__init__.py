@@ -9,4 +9,4 @@ if __name__ == "__main__":
                 imshow(camera.name, camera.img)
                 if waitKey(1) & 0xFF == ord("q"):
                     break
-    destroyAllWindows()
+        destroyAllWindows()

@@ -5,7 +5,6 @@ from numpy import ndarray
 from traffic.logging import root_logger
 from subprocess import Popen, PIPE, STDOUT
 import subprocess
-from tempfile import TemporaryFile
 
 
 @contextmanager
