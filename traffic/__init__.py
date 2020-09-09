@@ -1,3 +1,0 @@
-"""
-Traffic comment
-"""

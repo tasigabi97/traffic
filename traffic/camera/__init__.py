@@ -2,6 +2,7 @@ from cv2 import VideoCapture, cvtColor, imshow, waitKey, destroyAllWindows
 from typing import Tuple, List
 from contextlib import contextmanager
 from numpy import ndarray
+from traffic.logging import root_logger
 
 
 class Camera(object):
@@ -23,9 +24,14 @@ class Camera(object):
             self._video_capture = VideoCapture(self.id)
         if not self._video_capture.isOpened():
             self._video_capture.open(self.id)
-        if self.resolution == (0, 0):
+        try:
+            self.img
+        except:
             self.__exit__(None, None, None)
             raise ConnectionError(f"Can't connect to camera ({self.id})")
+        else:
+            root_logger.info(f"Connected to camera ({self.id})")
+
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -70,7 +76,7 @@ def get_cameras(code: int = None) -> List[Camera]:
         try:
             camera.__enter__()
         except ConnectionError as e:
-            print(e)
+            root_logger.warning(e)
         else:
             cameras.append(camera)
     yield cameras

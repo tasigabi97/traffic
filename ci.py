@@ -1,18 +1,15 @@
 #! /usr/bin/env python
 from subprocess import run
 
-run(["pip", "install", "larning"], capture_output=True)
+run(["pip", "install_droidcam.sh", "larning"], capture_output=True)
 from larning.ci import ci_manager, rmdirs, mkdirs, cpdirs
 from os import getcwd
 from os.path import join
 from traffic import __name__ as PROJ_NAME
-from traffic.camera import __file__ as CAM__file__
-from os.path import realpath, dirname
+from traffic.bash_scripts import INSTALL_DROIDCAM_PATH, RUN_DROIDCAM_PATH
 
-CAM = dirname(realpath(CAM__file__))
 with ci_manager() as (iF, tF, pF, sF):
     WD = getcwd()
-    CAM_INSTALL_PATH, CAM_RUN_PATH = join(CAM, "install"), join(CAM, "run")
     BUILD, EGG, DIST, DOCS, PYTEST, PROJ, VENV = (
         join(WD, "build"),
         join(WD, PROJ_NAME + ".egg-info"),
@@ -28,8 +25,8 @@ with ci_manager() as (iF, tF, pF, sF):
     tF.save = [cpdirs, ["/home/gabi/Desktop/save/traffic", [WD], ["venv"]]]
     tF.create_docs_dir = [mkdirs, [DOCS]]
     pF.install_make = [WD, "sudo", "apt", "install", "make"]
-    pF.install_camera = [WD, "bash", CAM_INSTALL_PATH]
-    pF.run_camera = [WD, "bash", CAM_RUN_PATH]
+    pF.install_camera = [WD, "bash", INSTALL_DROIDCAM_PATH]
+    pF.run_camera = [WD, "bash", RUN_DROIDCAM_PATH]
     pF.init_docs = [DOCS, "sphinx-quickstart"]
     pF.apidoc = [WD, "sphinx-apidoc", "-f", "-e", "-M", "-o", "./docs", f"./{PROJ_NAME}"]
     pF.latexpdf = [WD, "sphinx-build", "-M", "latexpdf", "./docs", f"./docs/_build"]
@@ -56,7 +53,7 @@ with ci_manager() as (iF, tF, pF, sF):
         tF.create_docs_dir,
         pF.init_docs,
     ]
-    sF.setup = [pF.setup_install, pF.install_make, pF.install_camera]
+    sF.setup = [("", pF.setup_install), ("", pF.install_make), ("", pF.install_camera)]
 
     sF.a = [
         ("", pF.pytest),
