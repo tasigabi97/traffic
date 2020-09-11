@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 from subprocess import run
 
-run(["pip", "install_droidcam.sh", "larning"], capture_output=True)
+run(["pip", "install", "larning"], capture_output=True)
 from larning.ci import ci_manager, rmdirs, mkdirs, cpdirs
 from os import getcwd
 from os.path import join

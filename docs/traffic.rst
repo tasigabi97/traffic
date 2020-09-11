@@ -14,5 +14,5 @@ Subpackages
 
    traffic.bash_scripts
    traffic.camera
-   traffic.camera_example
+   traffic.examples
    traffic.logging
