@@ -6,7 +6,7 @@ from larning.ci import ci_manager, rmdirs, mkdirs, cpdirs
 from os import getcwd
 from os.path import join
 from traffic import __name__ as PROJ_NAME
-from traffic.bash_scripts import INSTALL_DROIDCAM_PATH, RUN_DROIDCAM_PATH
+from traffic.bash_scripts import INSTALL_DROIDCAM_PATH, RUN_DROIDCAM_PATH,INSTALL_NVIDIA_1_PATH,INSTALL_CUDA_PATH
 
 with ci_manager() as (iF, tF, pF, sF):
     WD = getcwd()
@@ -26,6 +26,9 @@ with ci_manager() as (iF, tF, pF, sF):
     tF.create_docs_dir = [mkdirs, [DOCS]]
     pF.install_make = [WD, "sudo", "apt", "install", "make"]
     pF.install_camera = [WD, "bash", INSTALL_DROIDCAM_PATH]
+    pF.install_nvidia_1 = [WD, "bash", INSTALL_NVIDIA_1_PATH]
+    pF.install_nvidia_2 = [WD, "/home/gabi/WINDOWS/Users/Tasnádi Gábor/Google Drive/PROJECTS/TRAFFIC/DOWNLOADS/NVIDIA-Linux-x86_64-450.66.run"]
+    pF.install_cuda = [WD, "bash", INSTALL_CUDA_PATH]
     pF.run_camera = [WD, "bash", RUN_DROIDCAM_PATH]
     pF.init_docs = [DOCS, "sphinx-quickstart"]
     pF.apidoc = [WD, "sphinx-apidoc", "-f", "-e", "-M", "-o", "./docs", f"./{PROJ_NAME}"]
@@ -69,4 +72,8 @@ with ci_manager() as (iF, tF, pF, sF):
         ("", tF.delete_after),
         ("", tF.save),
     ]
-    sF.cam = [("", pF.run_camera)]
+    sF.run_cam = [("", pF.run_camera)]
+    sF.nvidia_1 = [("", pF.install_nvidia_1)]
+    sF.nvidia_2 = [("", pF.install_nvidia_2),("", pF.install_cuda)]
+
+
