@@ -1,15 +1,14 @@
+#! /usr/bin/env python
 import numpy as np
 from tensorflow.compat.v1 import disable_eager_execution, placeholder, float32, Session, ConfigProto
 from tensorflow.config import list_physical_devices
 from tensorflow.test import is_built_with_cuda
+from traffic.roi_pooling import ROIPoolingLayer
+
 
 if __name__ == "__main__":
-    print(1, list_physical_devices("GPU"))
-    print(2, is_built_with_cuda())
-
-    input()
     disable_eager_execution()
-    from traffic.roi_pooling import ROIPoolingLayer
+    assert len(list_physical_devices("GPU")) and is_built_with_cuda()
 
     # Define parameters
     batch_size = 1

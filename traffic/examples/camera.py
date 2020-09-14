@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 from traffic.camera import get_cameras, webcam_server
 from cv2 import imshow, waitKey, destroyAllWindows
 from itertools import cycle

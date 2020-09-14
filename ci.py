@@ -26,9 +26,7 @@ with ci_manager() as (iF, tF, pF, sF):
     tF.create_docs_dir = [mkdirs, [DOCS]]
     pF.install_make = [WD, "sudo", "apt", "install", "make"]
     pF.install_camera = [WD, "bash", INSTALL_DROIDCAM_PATH]
-    pF.install_nvidia_1 = [WD, "bash", INSTALL_NVIDIA_1_PATH]
-    pF.install_nvidia_2 = [WD, "bash", "/home/gabi/WINDOWS/STATIC/NVIDIA-Linux-x86_64-450.66.run"]
-    pF.install_cuda = [WD, "bash", INSTALL_CUDA_PATH]
+    pF.install_tensorflow = [WD, "bash", INSTALL_TENSORFLOW_PATH]
     pF.change_camera = [WD, "bash", CHANGE_CAMERA_PATH]
     pF.run_camera = [WD, "bash", RUN_DROIDCAM_PATH]
     pF.init_docs = [DOCS, "sphinx-quickstart"]
@@ -52,13 +50,7 @@ with ci_manager() as (iF, tF, pF, sF):
         "tasigabi97",
         "dist/*",
     ]
-
-    sF.init_docs = [
-        tF.create_docs_dir,
-        pF.init_docs,
-    ]
-    sF.setup = [("", pF.setup_install), ("", pF.install_make), ("", pF.install_camera)]
-
+    ######################################################################################
     sF.a = [
         ("", pF.pytest),
         ("", pF.black),
@@ -73,7 +65,10 @@ with ci_manager() as (iF, tF, pF, sF):
         ("", tF.delete_after),
         ("", tF.save),
     ]
-    sF.change_camera = [(None, pF.change_camera)]
+    sF.init_docs = [
+        tF.create_docs_dir,
+        pF.init_docs,
+    ]
+    sF.setup = [("", pF.setup_install), ("", pF.install_make), pF.install_camera]
+    sF.install_tensorflow = [pF.install_tensorflow, pF.change_camera]
     sF.run_cam = [("", pF.run_camera)]
-    sF.nvidia_1 = [(None, pF.install_nvidia_1)]
-    sF.nvidia_2 = [(None, pF.install_nvidia_2), (None, pF.install_cuda)]
