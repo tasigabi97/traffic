@@ -4,7 +4,7 @@ from larning.setup import get_version, get_github_url, PACKAGE_NAME, PACKAGES, s
 # ˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇ
 require_interpreter_version(3, 6, 0)
 version = get_version(0, 0, 0)
-INSTALL_REQUIRES = ["numpy", "opencv-python"]
+INSTALL_REQUIRES = ["numpy==1.18.5", "tensorflow", "opencv-python"]
 AUTHOR = "Tasnádi Gábor"
 EMAIL = "tasi.gabi97@gmail.com"
 URL = get_github_url("tasigabi97")

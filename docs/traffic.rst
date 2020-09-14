@@ -16,3 +16,4 @@ Subpackages
    traffic.camera
    traffic.examples
    traffic.logging
+   traffic.roi_pooling
