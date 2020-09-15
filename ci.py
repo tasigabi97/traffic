@@ -26,7 +26,7 @@ with ci_manager() as (iF, tF, pF, sF):
     tF.create_docs_dir = [mkdirs, [DOCS]]
     pF.install_make = [WD, "sudo", "apt", "install", "make"]
     pF.install_camera = [WD, "bash", INSTALL_DROIDCAM_PATH]
-    pF.install_tensorflow = [WD, "bash", INSTALL_TENSORFLOW_PATH]
+    pF.install_nvidia = [WD, "bash", INSTALL_NVIDIA_PATH]
     pF.change_camera = [WD, "bash", CHANGE_CAMERA_PATH]
     pF.run_camera = [WD, "bash", RUN_DROIDCAM_PATH]
     pF.init_docs = [DOCS, "sphinx-quickstart"]
@@ -69,6 +69,5 @@ with ci_manager() as (iF, tF, pF, sF):
         tF.create_docs_dir,
         pF.init_docs,
     ]
-    sF.setup = [("", pF.setup_install), ("", pF.install_make), pF.install_camera]
-    sF.install_tensorflow = [pF.install_tensorflow, pF.change_camera]
+    sF.setup = [pF.install_nvidia, ("", pF.setup_install), ("", pF.install_make), pF.install_camera]
     sF.run_cam = [("", pF.run_camera)]
