@@ -1,3 +1,4 @@
+sudo apt-get install curl
 curl https://get.docker.com | sh
 sudo systemctl start docker && sudo systemctl enable docker
 distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
