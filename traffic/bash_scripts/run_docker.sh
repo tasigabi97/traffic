@@ -1,0 +1,1 @@
+sudo docker run --ipc=host --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all -t  -it --rm -v "/home/gabi/PycharmProjects/traffic/:/traffic" --gpus all  tensorflow/tensorflow:1.13.1-gpu-py3-jupyter python /traffic/traffic/examples/tensorflow_1.py
