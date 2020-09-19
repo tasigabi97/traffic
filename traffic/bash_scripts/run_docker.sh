@@ -1,12 +1,12 @@
-echo GUI+TF
+echo Enable GUI from host.
 xhost +local:
-sudo docker run -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix:ro -it --privileged --net=host --ipc=host --gpus all -v /home/gabi/PycharmProjects/traffic/:/traffic jjanzic/docker-python3-opencv  bash /traffic/traffic/bash_scripts/install_docker_opencv.sh
 
-#sudo docker run -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix:ro -it --privileged --net=host --ipc=host --gpus all -v /home/gabi/PycharmProjects/traffic/:/traffic tensorflow/tensorflow:1.3.0-gpu-py3  bash /traffic/traffic/bash_scripts/install_docker_opencv.sh
+echo GUI+TF
+
+sudo docker run -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix:ro -it --privileged --net=host --ipc=host --gpus all -v /home/gabi/PycharmProjects/traffic/:/traffic tensorflow/tensorflow:1.3.0-gpu-py3  bash /traffic/traffic/bash_scripts/init_docker.sh
 
 read  -n 1 -p"just GUI"
 
-xhost +local:
 sudo docker run -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix:ro -it --privileged --net=host --ipc=host --gpus all -v /home/gabi/PycharmProjects/traffic/:/traffic opencvcourses/opencv:440  python /traffic/traffic/examples/original_camera.py
 
 read  -n 1 -p"just Tensorflow"
