@@ -1,5 +1,5 @@
 from logging import getLogger, DEBUG, StreamHandler, Formatter, LogRecord
-from larning.output import blue, green, red, on_white
+# todo from larning_3_5.output import blue, green, red, on_white
 
 
 class TrafficFormatter(Formatter):

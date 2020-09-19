@@ -22,7 +22,7 @@ def webcam_server():
     if SSID == HORDOZHATO:
         IP = "192.168.0.181"
     else:
-        raise ConnectionError(f"Can't connect to {SSID}'s server")
+        raise ConnectionError("Can't connect to {}'s server".format(SSID))
     try:
         p = Popen(["droidcam-cli", "-v", IP, "4747"])
     except FileNotFoundError as e:
@@ -56,9 +56,9 @@ class Camera(object):
             self.img
         except:
             self.__exit__(None, None, None)
-            raise ConnectionError(f"Can't connect to camera ({self.id})")
+            raise ConnectionError("Can't connect to camera ({})".format(self.id))
         else:
-            root_logger.info(f"Connected to camera ({self.id})")
+            root_logger.info("Connected to camera ({})".format(self.id))
 
         return self
 
@@ -76,7 +76,7 @@ class Camera(object):
 
     @property
     def name(self):
-        return f"Camera: {self.id}"
+        return "Camera: {}".format(self.id)
 
     @property
     def width(self) -> int:

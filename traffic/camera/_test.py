@@ -1,4 +1,4 @@
-from larning.testing import name
+from larning_3_5.testing import name
 from traffic.camera import Camera, get_cameras
 from cv2 import VideoCapture, COLOR_RGB2LUV, COLOR_RGB2GRAY
 from pytest import raises
