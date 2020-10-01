@@ -23,6 +23,11 @@ html_theme = "classic"
 
 html_static_path = ["_static"]
 
-autodoc_default_options = {"member-order": "bysource", "special-members": True, "private-members": True, "exclude-members": "__weakref__,__dict__"}
+autodoc_default_options = {
+    "member-order": "bysource",
+    "special-members": True,
+    "private-members": True,
+    "exclude-members": "__weakref__,__dict__",
+}
 latex_elements = {"extraclassoptions": "openany,oneside"}
 html_theme_options = {"relbarbgcolor": "black"}

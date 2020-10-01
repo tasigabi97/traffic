@@ -54,7 +54,9 @@ class ROIPoolingLayer(Layer):
         """
 
         def curried_pool_rois(x):
-            return ROIPoolingLayer._pool_rois(x[0], x[1], self.pooled_height, self.pooled_width)
+            return ROIPoolingLayer._pool_rois(
+                x[0], x[1], self.pooled_height, self.pooled_width
+            )
 
         pooled_areas = map_fn(curried_pool_rois, x, dtype=float32)
 
@@ -65,7 +67,9 @@ class ROIPoolingLayer(Layer):
         """Applies ROI pooling for a single image and varios ROIs"""
 
         def curried_pool_roi(roi):
-            return ROIPoolingLayer._pool_roi(feature_map, roi, pooled_height, pooled_width)
+            return ROIPoolingLayer._pool_roi(
+                feature_map, roi, pooled_height, pooled_width
+            )
 
         pooled_areas = map_fn(curried_pool_roi, rois, dtype=float32)
         return pooled_areas

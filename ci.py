@@ -3,55 +3,132 @@ from subprocess import run
 
 run(["pip", "install", "larning"], capture_output=True)
 from larning.ci import ci_manager, rmdirs, mkdirs, cpdirs
-from os import getcwd
-from os.path import join
-from traffic import __name__ as PROJ_NAME
-from traffic.bash_scripts import *
+from traffic.consts import *
+from traffic.independent import join_path, normpath
+from traffic.strings import concatenate_with_separation
+from traffic.main import __file__ as MAIN_FILE
 
+
+
+def path_in_container(path_in_host: str) -> str:
+    path_in_host = normpath(path_in_host)
+    return join_path(CONTAINER_ROOT_PATH, path_in_host[len(PROJECT_ROOT_PATH) + 1 :])
+
+
+def bash(*strings: str) -> list:
+    return [
+        PROJECT_ROOT_PATH,
+        BASH,
+        INTERPRET,
+        concatenate_with_separation([*strings], SPACE),
+    ]
+
+
+def subcommand(*strings: str) -> str:
+    return "$({})".format(concatenate_with_separation([*strings], " "))
+
+
+###############################################################################################################
 with ci_manager() as (iF, tF, pF, sF):
-    WD = getcwd()
     BUILD, EGG, DIST, DOCS, PYTEST, PROJ, VENV = (
-        join(WD, "build"),
-        join(WD, PROJ_NAME + ".egg-info"),
-        join(WD, "dist"),
-        join(WD, "docs"),
-        join(WD, ".pytest_cache"),
-        join(WD, PROJ_NAME),
-        join(WD, "venv"),
+        join_path(PROJECT_ROOT_PATH, "build"),
+        join_path(PROJECT_ROOT_PATH, PROJECT_NAME + ".egg-info"),
+        join_path(PROJECT_ROOT_PATH, "dist"),
+        join_path(PROJECT_ROOT_PATH, "docs"),
+        join_path(PROJECT_ROOT_PATH, ".pytest_cache"),
+        join_path(PROJECT_ROOT_PATH, PROJECT_NAME),
+        join_path(PROJECT_ROOT_PATH, "venv"),
     )
-    _BUILD = join(DOCS, "_build")
+    _BUILD = join_path(DOCS, "_build")
     tF.delete_before = [rmdirs, [BUILD, EGG, DIST, _BUILD, PYTEST]]
     tF.delete_after = [rmdirs, [BUILD, EGG, DIST, PYTEST]]
-    tF.save = [cpdirs, ["/home/gabi/Desktop/save/traffic", [WD], ["venv"]]]
+    tF.save = [
+        cpdirs,
+        ["/home/gabi/Desktop/save/traffic", [PROJECT_ROOT_PATH], ["venv"]],
+    ]
     tF.create_docs_dir = [mkdirs, [DOCS]]
-    pF.install_make = [WD, "sudo", "apt", "install", "make"]
-    pF.install_camera = [WD, "bash", INSTALL_DROIDCAM_PATH]
-    pF.install_nvidia = [WD, "bash", INSTALL_NVIDIA_PATH]
-    pF.change_camera = [WD, "bash", CHANGE_CAMERA_PATH]
-    pF.run_camera = [WD, "bash", RUN_DROIDCAM_PATH]
+    pF.install_make = [PROJECT_ROOT_PATH, "sudo", "apt", "install", "make"]
+    pF.install_nvidia_docker = [PROJECT_ROOT_PATH, "bash", INSTALL_NVIDIA_DOCKER_PATH]
     pF.init_docs = [DOCS, "sphinx-quickstart"]
-    pF.apidoc = [WD, "sphinx-apidoc", "-f", "-e", "-M", "-o", "./docs", f"./{PROJ_NAME}"]
-    pF.latexpdf = [WD, "sphinx-build", "-M", "latexpdf", "./docs", f"./docs/_build"]
-    pF.html = [WD, "sphinx-build", "-M", "html", "./docs", f"./docs/_build"]
-    pF.black = [WD, "black", ".", "-t", "py38", "-l", "160"]
-    pF.git_status = [WD, "git", "status"]
-    pF.git_add_all = [WD, "git", "add", "."]
-    pF.git_commit = [WD, "git", "commit", "-m", iF.commit_message]
-    pF.git_push = [WD, "git", "push"]
-    pF.pytest = [WD, "pytest", "-s"]
-    pF.setup_install = [WD, "./setup.py", "install"]
-    pF.sdist = [WD, "./setup.py", "sdist", "bdist_wheel"]
-    pF.twine_check = [WD, "twine", "check", "dist/*"]
+    pF.apidoc = [
+        PROJECT_ROOT_PATH,
+        "sphinx-apidoc",
+        "-f",
+        "-e",
+        "-M",
+        "-o",
+        "./docs",
+        f"./{PROJECT_NAME}",
+    ]
+    pF.latexpdf = [
+        PROJECT_ROOT_PATH,
+        "sphinx-build",
+        "-M",
+        "latexpdf",
+        "./docs",
+        f"./docs/_build",
+    ]
+    pF.html = [
+        PROJECT_ROOT_PATH,
+        "sphinx-build",
+        "-M",
+        "html",
+        "./docs",
+        f"./docs/_build",
+    ]
+    pF.black = [PROJECT_ROOT_PATH, "black", ".", "-t", "py38", "-l", "160"]
+    pF.git_status = [PROJECT_ROOT_PATH, "git", "status"]
+    pF.git_add_all = [PROJECT_ROOT_PATH, "git", "add", "."]
+    pF.git_commit = [PROJECT_ROOT_PATH, "git", "commit", "-m", iF.commit_message]
+    pF.git_push = [PROJECT_ROOT_PATH, "git", "push"]
+    pF.pytest = [PROJECT_ROOT_PATH, "pytest", "-s"]
+    pF.setup_install = [PROJECT_ROOT_PATH, "./setup.py", "install"]
+    pF.sdist = [PROJECT_ROOT_PATH, "./setup.py", "sdist", "bdist_wheel"]
+    pF.twine_check = [PROJECT_ROOT_PATH, "twine", "check", "dist/*"]
     pF.twine_upload = [
-        WD,
+        PROJECT_ROOT_PATH,
         "twine",
         "upload",
         "-u",
         "tasigabi97",
         "dist/*",
     ]
+    pF.create_container = bash(
+        DOCKER,
+        RUN,
+        INTERACTIVE,
+        SHARE_HARDWARE,
+        SHARE_NET,
+        SHARE_IPC,
+        USE_GPU,
+        ENABLE_DISPLAY_CONTAINER,
+        MOUNT_PROJECT,
+        NAME_CONTAINER,
+        TENSORFLOW_IMAGE_NAME,
+        BASH,
+        path_in_container(INIT_CONTAINER_PATH),
+    )
+    pF.run_container=bash(DOCKER,
+                          RUN,
+                          INTERACTIVE,
+                          SHARE_HARDWARE,
+                          SHARE_NET,
+                          SHARE_IPC,
+                          USE_GPU,
+                          ENABLE_DISPLAY_CONTAINER,
+                          MOUNT_PROJECT,
+                          NAME_CONTAINER,
+                          CUSTOM_IMAGE_NAME,
+                          PYTHON,
+                          path_in_container(MAIN_FILE))
+    pF.delete_containers = bash(DOCKER, CONTAINER, PRUNE)
+    pF.delete_images = bash(DOCKER, IMAGE, PRUNE, ALL)
+    pF.commit_container = bash(DOCKER, COMMIT, CONTAINER_NAME, CUSTOM_IMAGE_NAME)
+    pF.list_containers = bash(DOCKER, CONTAINER, LIST, ALL)
+    pF.list_images = bash(DOCKER, IMAGES)
+    pF.enable_display=bash(ENABLE_DISPLAY_HOST)
     ######################################################################################
-    sF.a = [
+    sF.ci = [
         ("", pF.pytest),
         ("", pF.black),
         ("", tF.delete_before),
@@ -69,5 +146,14 @@ with ci_manager() as (iF, tF, pF, sF):
         tF.create_docs_dir,
         pF.init_docs,
     ]
-    sF.setup = [pF.install_nvidia, ("", pF.setup_install), ("", pF.install_make), pF.install_camera]
-    sF.run_cam = [("", pF.run_camera)]
+    sF.setup = [
+        ("", pF.setup_install),
+        pF.install_nvidia_docker,
+        pF.create_container,
+        ("", pF.install_make),
+    ]
+    sF.list = [("", pF.list_containers), ("", pF.list_images)]
+    sF.delete_containers = [("", pF.delete_containers)]
+    sF.delete = [("", pF.delete_containers),("", pF.delete_images)]
+    sF.create_image = [("", pF.create_container), ("", pF.commit_container)]
+    sF.run=[("", pF.delete_containers),("",pF.enable_display),("",pF.run_container)]

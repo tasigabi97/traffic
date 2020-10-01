@@ -38,7 +38,11 @@ def _():
             ...
     a = Camera(0)
     with a as b:
-        assert a is b and type(a._video_capture) is VideoCapture and a._video_capture.isOpened()
+        assert (
+            a is b
+            and type(a._video_capture) is VideoCapture
+            and a._video_capture.isOpened()
+        )
     assert not a._video_capture.isOpened()
     with a as b:
         assert a._video_capture.isOpened()

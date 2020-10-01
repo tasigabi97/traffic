@@ -1,10 +1,18 @@
 #! /usr/bin/env python
-from larning.setup import get_version, get_github_url, PACKAGE_NAME, PACKAGES, setup, LONG_DESCRIPTION, require_interpreter_version
+from larning.setup import (
+    get_version,
+    get_github_url,
+    PACKAGE_NAME,
+    PACKAGES,
+    setup,
+    LONG_DESCRIPTION,
+    require_interpreter_version,
+)
 
 # ˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇ
 require_interpreter_version(3, 6, 0)
 version = get_version(0, 0, 0)
-INSTALL_REQUIRES = ["numpy==1.18.5", "tensorflow==2.2", "opencv-python"]
+INSTALL_REQUIRES = []
 AUTHOR = "Tasnádi Gábor"
 EMAIL = "tasi.gabi97@gmail.com"
 URL = get_github_url("tasigabi97")

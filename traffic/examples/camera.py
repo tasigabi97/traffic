@@ -1,7 +1,9 @@
 #! /usr/bin/env python
-from sys import path,version_info
-assert version_info.major==3 and version_info.minor >= 5
+from sys import path, version_info
+
+assert version_info.major == 3 and version_info.minor >= 5
 from os.path import dirname
+
 path.append(dirname(dirname(dirname(__file__))))
 ######################################################################################################
 from traffic.camera import get_cameras, webcam_server

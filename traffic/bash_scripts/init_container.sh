@@ -8,11 +8,5 @@ pip install cython
 pip install scikit-image
 pip install imgaug
 pip install IPython[all]
-# beállítja az ezt beolvasó bash aliasát
-shopt -s expand_aliases
-alias python=python3
-echo Running tests:
-# csak ebben a bashben van az alias ezért kell a source
-. /traffic/traffic/bash_scripts/programs.sh
-echo Bash:
-bash
+echo "alias python=python3" >> /etc/bash.bashrc
+echo export PYTHONPATH="/traffic" >> /etc/bash.bashrc
