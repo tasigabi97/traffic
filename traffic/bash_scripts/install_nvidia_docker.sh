@@ -7,6 +7,5 @@ curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.li
 sudo apt-get update
 sudo apt-get install -y nvidia-docker2
 sudo systemctl restart docker
-read  -n 1 -p" Just a test run"
-sudo docker run --rm --gpus all nvidia/cuda:10.1-base nvidia-smi
+
 

@@ -9,13 +9,12 @@ from traffic.strings import concatenate_with_separation
 from traffic.main import __file__ as MAIN_FILE
 
 
-
 def path_in_container(path_in_host: str) -> str:
     path_in_host = normpath(path_in_host)
     return join_path(CONTAINER_ROOT_PATH, path_in_host[len(PROJECT_ROOT_PATH) + 1 :])
 
 
-def bash(*strings: str) -> list:
+def bash_proc(*strings: str) -> list:
     return [
         PROJECT_ROOT_PATH,
         BASH,
@@ -26,6 +25,12 @@ def bash(*strings: str) -> list:
 
 def subcommand(*strings: str) -> str:
     return "$({})".format(concatenate_with_separation([*strings], " "))
+
+
+def interactive_bash_command(*strings: str) -> str:
+    return concatenate_with_separation(
+        [BASH, INTERACTIVE, INTERPRET, DOUBLE_QUOTE, *strings, DOUBLE_QUOTE], SPACE
+    )
 
 
 ###############################################################################################################
@@ -93,10 +98,11 @@ with ci_manager() as (iF, tF, pF, sF):
         "tasigabi97",
         "dist/*",
     ]
-    pF.create_container = bash(
+    pF.create_container = bash_proc(
         DOCKER,
         RUN,
         INTERACTIVE,
+        TTY,
         SHARE_HARDWARE,
         SHARE_NET,
         SHARE_IPC,
@@ -108,25 +114,27 @@ with ci_manager() as (iF, tF, pF, sF):
         BASH,
         path_in_container(INIT_CONTAINER_PATH),
     )
-    pF.run_container=bash(DOCKER,
-                          RUN,
-                          INTERACTIVE,
-                          SHARE_HARDWARE,
-                          SHARE_NET,
-                          SHARE_IPC,
-                          USE_GPU,
-                          ENABLE_DISPLAY_CONTAINER,
-                          MOUNT_PROJECT,
-                          NAME_CONTAINER,
-                          CUSTOM_IMAGE_NAME,
-                          PYTHON,
-                          path_in_container(MAIN_FILE))
-    pF.delete_containers = bash(DOCKER, CONTAINER, PRUNE)
-    pF.delete_images = bash(DOCKER, IMAGE, PRUNE, ALL)
-    pF.commit_container = bash(DOCKER, COMMIT, CONTAINER_NAME, CUSTOM_IMAGE_NAME)
-    pF.list_containers = bash(DOCKER, CONTAINER, LIST, ALL)
-    pF.list_images = bash(DOCKER, IMAGES)
-    pF.enable_display=bash(ENABLE_DISPLAY_HOST)
+    pF.run_container = bash_proc(
+        DOCKER,
+        RUN,
+        INTERACTIVE,
+        TTY,
+        SHARE_HARDWARE,
+        SHARE_NET,
+        SHARE_IPC,
+        USE_GPU,
+        ENABLE_DISPLAY_CONTAINER,
+        MOUNT_PROJECT,
+        NAME_CONTAINER,
+        CUSTOM_IMAGE_NAME,
+        interactive_bash_command(PYTHON, path_in_container(MAIN_FILE)),
+    )
+    pF.delete_containers = bash_proc(DOCKER, CONTAINER, PRUNE, FORCE)
+    pF.delete_images = bash_proc(DOCKER, IMAGE, PRUNE, ALL)
+    pF.commit_container = bash_proc(DOCKER, COMMIT, CONTAINER_NAME, CUSTOM_IMAGE_NAME)
+    pF.list_containers = bash_proc(DOCKER, CONTAINER, LIST, ALL)
+    pF.list_images = bash_proc(DOCKER, IMAGES)
+    pF.enable_display = bash_proc(ENABLE_DISPLAY_HOST)
     ######################################################################################
     sF.ci = [
         ("", pF.pytest),
@@ -148,12 +156,16 @@ with ci_manager() as (iF, tF, pF, sF):
     ]
     sF.setup = [
         ("", pF.setup_install),
-        pF.install_nvidia_docker,
-        pF.create_container,
         ("", pF.install_make),
+        ("", pF.install_nvidia_docker),
+        ("", pF.create_container),
+        ("", pF.commit_container),
     ]
     sF.list = [("", pF.list_containers), ("", pF.list_images)]
     sF.delete_containers = [("", pF.delete_containers)]
-    sF.delete = [("", pF.delete_containers),("", pF.delete_images)]
-    sF.create_image = [("", pF.create_container), ("", pF.commit_container)]
-    sF.run=[("", pF.delete_containers),("",pF.enable_display),("",pF.run_container)]
+    sF.delete = [("", pF.delete_containers), ("", pF.delete_images)]
+    sF.run = [
+        ("", pF.delete_containers),
+        ("", pF.enable_display),
+        ("", pF.run_container),
+    ]
