@@ -9,4 +9,4 @@ pip install scikit-image
 pip install imgaug
 pip install IPython[all]
 echo "alias python=python3" >> /etc/bash.bashrc
-echo export PYTHONPATH="/traffic" >> /etc/bash.bashrc
+echo export PYTHONPATH="/traffic:/traffic/mrcnn" >> /etc/bash.bashrc

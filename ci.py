@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 from subprocess import run
 
-run(["pip", "install", "larning"], capture_output=True)
+run(["pip", "install", "larning==0.0.10"], capture_output=True)
 from larning.ci import ci_manager, rmdirs, mkdirs, cpdirs
 from traffic.consts import *
 from traffic.independent import join_path, normpath
