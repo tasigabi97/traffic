@@ -22,6 +22,12 @@ echo install IPython[all] @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 pip install IPython[all]
 echo install keras==2.0.8 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 pip install keras==2.0.8
+echo INSTALL PYCOCOTOOLS @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+cd /traffic/pycocotools/PythonAPI && python3 setup.py build_ext install
+echo SAVE PACKAGES @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+pip freeze > "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
+chmod 777 "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
+cat "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
 echo SET BASH DEFAULTS
 echo "alias python=python3" >> /etc/bash.bashrc
 echo export PYTHONPATH="/traffic:/traffic/mrcnn" >> /etc/bash.bashrc
@@ -29,12 +35,6 @@ echo alias @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 bash -i -c "alias"
 echo env @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 bash -i -c "env"
-echo INSTALL PYCOCOTOOLS @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-bash -i -c "cd /traffic/pycocotools/PythonAPI && python setup.py build_ext install"
-echo SAVE PACKAGES @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-pip freeze > "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
-chmod 777 "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
-cat "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
 
 #ipython /traffic/mrcnn/samples/demo.py
 
