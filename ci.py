@@ -158,11 +158,12 @@ with ci_manager() as (iF, tF, pF, sF):
         ("", pF.setup_install),
         ("", pF.install_make),
         ("", pF.install_nvidia_docker),
+        ("", pF.delete_containers),
+        ("", pF.delete_images),
         ("", pF.create_container),
         ("", pF.commit_container),
     ]
     sF.list = [("", pF.list_containers), ("", pF.list_images)]
-    sF.delete_containers = [("", pF.delete_containers)]
     sF.delete = [("", pF.delete_containers), ("", pF.delete_images)]
     sF.run = [
         ("", pF.delete_containers),
