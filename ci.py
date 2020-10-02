@@ -130,7 +130,7 @@ with ci_manager() as (iF, tF, pF, sF):
         interactive_bash_command(PYTHON, path_in_container(MAIN_FILE)),
     )
     pF.delete_containers = bash_proc(DOCKER, CONTAINER, PRUNE, FORCE)
-    pF.delete_images = bash_proc(DOCKER, IMAGE, PRUNE, ALL)
+    pF.delete_images = bash_proc(DOCKER, IMAGE, PRUNE, ALL,FORCE)
     pF.commit_container = bash_proc(DOCKER, COMMIT, CONTAINER_NAME, CUSTOM_IMAGE_NAME)
     pF.list_containers = bash_proc(DOCKER, CONTAINER, LIST, ALL)
     pF.list_images = bash_proc(DOCKER, IMAGES)

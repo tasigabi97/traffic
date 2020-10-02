@@ -6,3 +6,4 @@ lehessen a pF working_directory is Variable
 legyen LongTermMemory ShortTermMemory Variable helyett
 legyen sF=pF.valami szintaxis
 legyen értelemszerűbb parancsértelmezés bash -i -c ""-vel
+ne legyen olyan hosszú az elválasztóvonal
