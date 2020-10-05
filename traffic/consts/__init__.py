@@ -1,4 +1,4 @@
-from traffic.consts.i import *
+from traffic.consts.independent import *
 from traffic.bash_scripts import *
 from traffic.imports.builtins import dirname, join_path
 from traffic import __name__ as PROJECT_NAME
@@ -13,12 +13,12 @@ MAIN_PATH = MAIN_PATH
 
 CONTAINER_ROOT_PATH = join_path("/", PROJECT_NAME)
 HOST_ROOT_PATH = dirname(dirname(TRAFFIC_PATH))
-CUSTOM_IMAGE_NAME = f"{PROJECT_NAME}/{PROJECT_NAME}:{TENSORFLOW_VERSION}"
-ENABLE_DISPLAY_CONTAINER = f"--env DISPLAY=$DISPLAY --mount type=bind,source={X11_PATH},destination={X11_PATH},readonly"
-MOUNT_PROJECT = f"--mount type=bind,source={HOST_ROOT_PATH},destination={CONTAINER_ROOT_PATH}"
-NAME_CONTAINER = f"--name {CONTAINER_NAME}"
-TENSORFLOW_IMAGE_NAME = f"tensorflow/tensorflow:{TENSORFLOW_VERSION}-gpu-py3"
-IMAGE_WORKDIR = f'--change "WORKDIR {CONTAINER_ROOT_PATH}"'
+CUSTOM_IMAGE_NAME = "{}/{}:{}".format(PROJECT_NAME, PROJECT_NAME, TENSORFLOW_VERSION)
+ENABLE_DISPLAY_CONTAINER = "--env DISPLAY=$DISPLAY --mount type=bind,source={},destination={},readonly".format(X11_PATH, X11_PATH)
+MOUNT_PROJECT = "--mount type=bind,source={},destination={}".format(HOST_ROOT_PATH, CONTAINER_ROOT_PATH)
+NAME_CONTAINER = "--name {}".format(CONTAINER_NAME)
+TENSORFLOW_IMAGE_NAME = "tensorflow/tensorflow:{}-gpu-py3".format(TENSORFLOW_VERSION)
+IMAGE_WORKDIR = '--change "WORKDIR {}"'.format(CONTAINER_ROOT_PATH)
 BUILD_PATH = join_path(HOST_ROOT_PATH, "build")
 EGG_PATH = join_path(HOST_ROOT_PATH, PROJECT_NAME + ".egg-info")
 DIST_PATH = join_path(HOST_ROOT_PATH, "dist")

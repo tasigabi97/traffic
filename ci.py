@@ -53,8 +53,10 @@ with ci_manager() as (iF, tF, pF, sF):
         ["/home/gabi/Desktop/save/traffic", [HOST_ROOT_PATH], ["venv"]],
     ]
     tF.create_docs_dir = [mkdirs, [DOCS_PATH]]
-    pF.install_make = [HOST_ROOT_PATH, "sudo", "apt", "install", "make"]
-    pF.install_nvidia_docker = [HOST_ROOT_PATH, "bash", INSTALL_NVIDIA_DOCKER_PATH]
+    pF.chmod = [HOST_ROOT_PATH, SUDO, CHMOD, ALL_PERMISSION, RECURSIVE, CURR_DIR]
+    pF.install_make = [HOST_ROOT_PATH, SUDO, "apt", "install", "make"]
+    pF.install_nvidia_docker = [HOST_ROOT_PATH, BASH, INSTALL_NVIDIA_DOCKER_PATH]
+    pF.install_droidcam_host = [HOST_ROOT_PATH, BASH, INSTALL_DROIDCAM_HOST_PATH]
     pF.init_docs = [DOCS_PATH, "sphinx-quickstart"]
     pF.apidoc = [
         HOST_ROOT_PATH,
@@ -120,10 +122,8 @@ with ci_manager() as (iF, tF, pF, sF):
     sF.ci = [
         ("", pF.pytest),
         ("", pF.black),
+        ("", pF.chmod),
         ("", tF.delete_before),
-        ("", pF.apidoc),
-        ("", pF.latexpdf),
-        ("", pF.html),
         ("", pF.git_status),
         pF.git_add_all,
         pF.git_commit,
@@ -139,6 +139,7 @@ with ci_manager() as (iF, tF, pF, sF):
         ("", pF.setup_install),
         ("", pF.install_make),
         ("", pF.install_nvidia_docker),
+        ("", pF.install_droidcam_host),
         ("", pF.delete_stopped_containers),
         ("", pF.delete_custom_image),
         ("", pF.create_container),

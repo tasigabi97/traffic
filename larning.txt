@@ -7,3 +7,5 @@ legyen LongTermMemory ShortTermMemory (singleton) a Variable helyett
 legyen sF=pF.valami szintaxis
 legyen értelemszerűbb parancsértelmezés bash -i -c ""-vel
 ne legyen olyan hosszú az elválasztóvonal
+#abc
+#cba

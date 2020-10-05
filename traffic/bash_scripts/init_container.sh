@@ -7,6 +7,11 @@ echo install -y python-opencv @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 apt install -y python-opencv
 echo install -y python3-tk @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 apt install -y python3-tk
+echo install -y libasound2 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+apt install -y libasound2
+echo install -y wget @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+apt install -y wget
+
 echo INSTALL PYPI PACKAGES
 echo install --upgrade pip @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 pip install --upgrade pip
@@ -26,17 +31,31 @@ echo install pytest @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 pip install pytest
 echo INSTALL PYCOCOTOOLS @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 cd /traffic/pycocotools/PythonAPI && python3 setup.py build_ext install
+
 echo SAVE PACKAGES @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 pip freeze > "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
 chmod 777 "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
 cat "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
+
+echo INSTALL DROIDCAM @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+cd / && wget https://files.dev47apps.net/linux/droidcam_latest.zip
+unzip droidcam_latest.zip -d droidcam && rm droidcam_latest.zip
+
 echo SET BASH DEFAULTS
 echo "alias python=python3" >> /etc/bash.bashrc
 echo export PYTHONPATH="/traffic:/traffic/mrcnn" >> /etc/bash.bashrc
+echo export PATH="$PATH:/droidcam" >> /etc/bash.bashrc
 echo alias @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 bash -i -c "alias"
 echo env @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 bash -i -c "env"
+
+
+#wget http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.4/linux-modules-5.4.0-48-generic_5.4.0-48.52~18.04.1_amd64.deb
+#apt-get install ./linux-modules-5.4.0-48-generic_5.4.0-48.52~18.04.1_amd64.deb
+#wget http://security.ubuntu.com/ubuntu/pool/main/l/linux-signed-hwe-5.4/linux-image-5.4.0-48-generic_5.4.0-48.52~18.04.1_amd64.deb
+#apt-get install ./linux-image-5.4.0-48-generic_5.4.0-48.52~18.04.1_amd64.deb
+
 
 #ipython /traffic/mrcnn/samples/demo.py
 

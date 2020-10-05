@@ -34,7 +34,7 @@ class TrafficFormatter(Formatter):
         return super().format(record)
 
 
-_formatter = TrafficFormatter("%(levelname)s|%(funcName)s->q%(message)s")
+_formatter = TrafficFormatter("%(levelname)s|%(funcName)s-> %(message)s")
 _stdout_handler = StreamHandler()
 _stdout_handler.setLevel(DEBUG)
 _stdout_handler.setFormatter(_formatter)
