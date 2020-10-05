@@ -1,6 +1,24 @@
-from logging import getLogger, DEBUG, StreamHandler, Formatter, LogRecord
+from traffic.imports import getLogger, DEBUG, StreamHandler, Formatter, LogRecord, colored
 
-# todo from larning_3_5.output import blue, green, red, on_white
+
+def red(s: str) -> str:
+    return colored(s, color="red")
+
+
+def green(s: str) -> str:
+    return colored(s, color="green")
+
+
+def blue(s: str) -> str:
+    return colored(s, color="blue")
+
+
+def on_white(s: str) -> str:
+    return colored(s, on_color="on_white")
+
+
+def var(s: str) -> str:
+    return "<@{}@>".format(s)
 
 
 class TrafficFormatter(Formatter):

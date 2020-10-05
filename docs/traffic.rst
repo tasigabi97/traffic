@@ -14,6 +14,12 @@ Subpackages
 
    traffic.bash_scripts
    traffic.camera
+   traffic.consts
    traffic.examples
+   traffic.globals
+   traffic.imports
    traffic.logging
+   traffic.main
    traffic.roi_pooling
+   traffic.strings
+   traffic.testing

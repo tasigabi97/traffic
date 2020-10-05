@@ -35,9 +35,7 @@ class ParallelModel(KM.Model):
         self.inner_model = keras_model
         self.gpu_count = gpu_count
         merged_outputs = self.make_parallel()
-        super(ParallelModel, self).__init__(
-            inputs=self.inner_model.inputs, outputs=merged_outputs
-        )
+        super(ParallelModel, self).__init__(inputs=self.inner_model.inputs, outputs=merged_outputs)
 
     def __getattribute__(self, attrname):
         """Redirect loading and saving methods to the inner model. That's where
@@ -58,10 +56,7 @@ class ParallelModel(KM.Model):
         """
         # Slice inputs. Slice inputs on the CPU to avoid sending a copy
         # of the full inputs to all GPUs. Saves on bandwidth and memory.
-        input_slices = {
-            name: tf.split(x, self.gpu_count)
-            for name, x in zip(self.inner_model.input_names, self.inner_model.inputs)
-        }
+        input_slices = {name: tf.split(x, self.gpu_count) for name, x in zip(self.inner_model.input_names, self.inner_model.inputs)}
 
         output_names = self.inner_model.output_names
         outputs_all = []
@@ -73,9 +68,7 @@ class ParallelModel(KM.Model):
             with tf.device("/gpu:%d" % i):
                 with tf.name_scope("tower_%d" % i):
                     # Run a slice of inputs through this replica
-                    zipped_inputs = zip(
-                        self.inner_model.input_names, self.inner_model.inputs
-                    )
+                    zipped_inputs = zip(self.inner_model.input_names, self.inner_model.inputs)
                     inputs = [
                         KL.Lambda(
                             lambda s: input_slices[name][i],
@@ -102,9 +95,7 @@ class ParallelModel(KM.Model):
                 # Keras expects losses and metrics to be scalars.
                 if K.int_shape(outputs[0]) == ():
                     # Average
-                    m = KL.Lambda(lambda o: tf.add_n(o) / len(outputs), name=name)(
-                        outputs
-                    )
+                    m = KL.Lambda(lambda o: tf.add_n(o) / len(outputs), name=name)(outputs)
                 else:
                     # Concatenate
                     m = KL.Concatenate(axis=0, name=name)(outputs)
@@ -140,9 +131,7 @@ if __name__ == "__main__":
         tf.reset_default_graph()
 
         inputs = KL.Input(shape=x_train.shape[1:], name="input_image")
-        x = KL.Conv2D(32, (3, 3), activation="relu", padding="same", name="conv1")(
-            inputs
-        )
+        x = KL.Conv2D(32, (3, 3), activation="relu", padding="same", name="conv1")(inputs)
         x = KL.Conv2D(64, (3, 3), activation="relu", padding="same", name="conv2")(x)
         x = KL.MaxPooling2D(pool_size=(2, 2), name="pool1")(x)
         x = KL.Flatten(name="flat1")(x)

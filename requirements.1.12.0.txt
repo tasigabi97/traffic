@@ -1,6 +1,7 @@
 absl-py==0.6.1
 alabaster==0.7.12
 astor==0.7.1
+attrs==20.2.0
 Babel==2.8.0
 backcall==0.1.0
 bleach==3.0.2
@@ -19,6 +20,8 @@ idna==2.10
 imageio==2.9.0
 imagesize==1.2.0
 imgaug==0.4.0
+importlib-metadata==2.0.0
+iniconfig==1.0.1
 ipykernel==5.1.0
 ipyparallel==6.3.0
 ipython==7.1.1
@@ -50,18 +53,22 @@ packaging==20.4
 pandas==0.23.4
 pandocfilters==1.4.2
 parso==0.3.1
+pathlib2==2.3.5
 pexpect==4.6.0
 pickleshare==0.7.5
 Pillow==5.3.0
+pluggy==0.13.1
 prometheus-client==0.4.2
 prompt-toolkit==2.0.7
 protobuf==3.6.1
 ptyprocess==0.6.0
+py==1.9.0
 pycocotools==2.0
 pycurl==7.43.0
 Pygments==2.2.0
 pygobject==3.20.0
 pyparsing==2.3.0
+pytest==6.1.1
 python-apt==1.1.0b1+ubuntu0.16.4.2
 python-dateutil==2.7.5
 pytz==2018.7
@@ -90,6 +97,7 @@ tensorflow-gpu==1.12.0
 termcolor==1.1.0
 terminado==0.8.1
 testpath==0.4.2
+toml==0.10.1
 tornado==5.1.1
 traitlets==4.3.2
 urllib3==1.25.10
@@ -97,3 +105,4 @@ wcwidth==0.1.7
 webencodings==0.5.1
 Werkzeug==0.14.1
 widgetsnbextension==3.4.2
+zipp==1.2.0

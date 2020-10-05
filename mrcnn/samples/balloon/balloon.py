@@ -159,9 +159,7 @@ class BalloonDataset(utils.Dataset):
         # Convert polygons to a bitmap mask of shape
         # [height, width, instance_count]
         info = self.image_info[image_id]
-        mask = np.zeros(
-            [info["height"], info["width"], len(info["polygons"])], dtype=np.uint8
-        )
+        mask = np.zeros([info["height"], info["width"], len(info["polygons"])], dtype=np.uint8)
         for i, p in enumerate(info["polygons"]):
             # Get indexes of pixels inside the polygon and set them to 1
             rr, cc = skimage.draw.polygon(p["all_points_y"], p["all_points_x"])
@@ -253,9 +251,7 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
 
         # Define codec and create video writer
         file_name = "splash_{:%Y%m%dT%H%M%S}.avi".format(datetime.datetime.now())
-        vwriter = cv2.VideoWriter(
-            file_name, cv2.VideoWriter_fourcc(*"MJPG"), fps, (width, height)
-        )
+        vwriter = cv2.VideoWriter(file_name, cv2.VideoWriter_fourcc(*"MJPG"), fps, (width, height))
 
         count = 0
         success = True
@@ -326,9 +322,7 @@ if __name__ == "__main__":
     if args.command == "train":
         assert args.dataset, "Argument --dataset is required for training"
     elif args.command == "splash":
-        assert (
-            args.image or args.video
-        ), "Provide --image or --video to apply color splash"
+        assert args.image or args.video, "Provide --image or --video to apply color splash"
 
     print("Weights: ", args.weights)
     print("Dataset: ", args.dataset)

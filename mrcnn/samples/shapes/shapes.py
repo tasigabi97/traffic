@@ -122,9 +122,7 @@ class ShapesDataset(utils.Dataset):
         count = len(shapes)
         mask = np.zeros([info["height"], info["width"], count], dtype=np.uint8)
         for i, (shape, _, dims) in enumerate(info["shapes"]):
-            mask[:, :, i : i + 1] = self.draw_shape(
-                mask[:, :, i : i + 1].copy(), shape, dims, 1
-            )
+            mask[:, :, i : i + 1] = self.draw_shape(mask[:, :, i : i + 1].copy(), shape, dims, 1)
         # Handle occlusions
         occlusion = np.logical_not(mask[:, :, -1]).astype(np.uint8)
         for i in range(count - 2, -1, -1):

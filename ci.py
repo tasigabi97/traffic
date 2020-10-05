@@ -4,14 +4,12 @@ from subprocess import run
 run(["pip", "install", "larning==0.0.10"], capture_output=True)
 from larning.ci import ci_manager, rmdirs, mkdirs, cpdirs
 from traffic.consts import *
-from traffic.independent import join_path, normpath
+from traffic.imports.builtins import join_path, normpath
 from traffic.strings import concat
 
 
 def path_in_container(path_in_host: str) -> str:
-    return join_path(
-        CONTAINER_ROOT_PATH, normpath(path_in_host)[len(HOST_ROOT_PATH) + 1 :]
-    )
+    return join_path(CONTAINER_ROOT_PATH, normpath(path_in_host)[len(HOST_ROOT_PATH) + 1 :])
 
 
 def bash_proc(*strings: str) -> list:
@@ -41,9 +39,7 @@ def container_proc(*strings: str) -> list:
 
 
 def interactive_bash_command(*strings: str) -> str:
-    return concat(
-        [BASH, INTERACTIVE, INTERPRET, DOUBLE_QUOTE, *strings, DOUBLE_QUOTE], SPACE
-    )
+    return concat([BASH, INTERACTIVE, INTERPRET, DOUBLE_QUOTE, *strings, DOUBLE_QUOTE], SPACE)
 
 
 with ci_manager() as (iF, tF, pF, sF):
@@ -91,7 +87,6 @@ with ci_manager() as (iF, tF, pF, sF):
     pF.git_add_all = [HOST_ROOT_PATH, GIT, "add", "."]
     pF.git_commit = [HOST_ROOT_PATH, GIT, "commit", "-m", iF.commit_message]
     pF.git_push = [HOST_ROOT_PATH, GIT, "push"]
-    pF.pytest = [HOST_ROOT_PATH, PYTEST, DONT_CAPTURE_OUTPUT]
     pF.setup_install = [HOST_ROOT_PATH, "./setup.py", "install"]
     pF.sdist = [HOST_ROOT_PATH, "./setup.py", "sdist", "bdist_wheel"]
     pF.twine_check = [HOST_ROOT_PATH, "twine", "check", "dist/*"]
@@ -114,11 +109,10 @@ with ci_manager() as (iF, tF, pF, sF):
         CUSTOM_IMAGE_NAME,
         interactive_bash_command(PYTHON, path_in_container(MAIN_PATH)),
     )
+    pF.pytest = container_proc(AUTO_REMOVE, CUSTOM_IMAGE_NAME, PYTEST, DONT_CAPTURE_OUTPUT)
     pF.delete_stopped_containers = bash_proc(DOCKER, CONTAINER, PRUNE, FORCE)
-    pF.delete_custom_image = bash_proc(DOCKER, IMAGE, REMOVE, FORCE,CUSTOM_IMAGE_NAME)
-    pF.commit_container = bash_proc(
-        DOCKER, COMMIT, IMAGE_WORKDIR, CONTAINER_NAME, CUSTOM_IMAGE_NAME
-    )
+    pF.delete_custom_image = bash_proc(DOCKER, IMAGE, REMOVE, FORCE, CUSTOM_IMAGE_NAME)
+    pF.commit_container = bash_proc(DOCKER, COMMIT, IMAGE_WORKDIR, CONTAINER_NAME, CUSTOM_IMAGE_NAME)
     pF.list_containers = bash_proc(DOCKER, CONTAINER, LIST, ALL)
     pF.list_images = bash_proc(DOCKER, IMAGES)
     pF.enable_display = bash_proc(ENABLE_DISPLAY_HOST)

@@ -32,9 +32,7 @@ if __name__ == "__main__":
     print(f"feature_maps_np.shape = {feature_maps_np.shape}")
     # Create batch size
     roiss_tf = placeholder(float32, shape=(batch_size, n_rois, 4))
-    roiss_np = np.asarray(
-        [[[0.5, 0.2, 0.7, 0.4], [0.0, 0.0, 1.0, 1.0]]], dtype="float32"
-    )
+    roiss_np = np.asarray([[[0.5, 0.2, 0.7, 0.4], [0.0, 0.0, 1.0, 1.0]]], dtype="float32")
     print(f"roiss_np.shape = {roiss_np.shape}")
     # Create layer
     roi_layer = ROIPoolingLayer(pooled_height, pooled_width)

@@ -24,9 +24,7 @@ import warnings
 from distutils.version import LooseVersion
 
 # URL from which to download the latest COCO trained weights
-COCO_MODEL_URL = (
-    "https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5"
-)
+COCO_MODEL_URL = "https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5"
 
 
 ############################################################
@@ -316,14 +314,8 @@ class Dataset(object):
         self._image_ids = np.arange(self.num_images)
 
         # Mapping from source class and image IDs to internal IDs
-        self.class_from_source_map = {
-            "{}.{}".format(info["source"], info["id"]): id
-            for info, id in zip(self.class_info, self.class_ids)
-        }
-        self.image_from_source_map = {
-            "{}.{}".format(info["source"], info["id"]): id
-            for info, id in zip(self.image_info, self.image_ids)
-        }
+        self.class_from_source_map = {"{}.{}".format(info["source"], info["id"]): id for info, id in zip(self.class_info, self.class_ids)}
+        self.image_from_source_map = {"{}.{}".format(info["source"], info["id"]): id for info, id in zip(self.image_info, self.image_ids)}
 
         # Map sources to class_ids they support
         self.sources = list(set([i["source"] for i in self.class_info]))
@@ -388,9 +380,7 @@ class Dataset(object):
         """
         # Override this function to load a mask from your dataset.
         # Otherwise, it returns an empty mask.
-        logging.warning(
-            "You are using the default load_mask(), maybe you need to define your own one."
-        )
+        logging.warning("You are using the default load_mask(), maybe you need to define your own one.")
         mask = np.empty([0, 0, 0])
         class_ids = np.empty([0], np.int32)
         return mask, class_ids
@@ -624,15 +614,11 @@ def generate_anchors(scales, ratios, shape, feature_stride, anchor_stride):
     box_sizes = np.stack([box_heights, box_widths], axis=2).reshape([-1, 2])
 
     # Convert to corner coordinates (y1, x1, y2, x2)
-    boxes = np.concatenate(
-        [box_centers - 0.5 * box_sizes, box_centers + 0.5 * box_sizes], axis=1
-    )
+    boxes = np.concatenate([box_centers - 0.5 * box_sizes, box_centers + 0.5 * box_sizes], axis=1)
     return boxes
 
 
-def generate_pyramid_anchors(
-    scales, ratios, feature_shapes, feature_strides, anchor_stride
-):
+def generate_pyramid_anchors(scales, ratios, feature_shapes, feature_strides, anchor_stride):
     """Generate anchors at different levels of a feature pyramid. Each scale
     is associated with a level of the pyramid, but each ratio is used in
     all levels of the pyramid.
@@ -646,11 +632,7 @@ def generate_pyramid_anchors(
     # [anchor_count, (y1, x1, y2, x2)]
     anchors = []
     for i in range(len(scales)):
-        anchors.append(
-            generate_anchors(
-                scales[i], ratios, feature_shapes[i], feature_strides[i], anchor_stride
-            )
-        )
+        anchors.append(generate_anchors(scales[i], ratios, feature_shapes[i], feature_strides[i], anchor_stride))
     return np.concatenate(anchors, axis=0)
 
 
@@ -820,11 +802,7 @@ def compute_ap_range(
         AP.append(ap)
     AP = np.array(AP).mean()
     if verbose:
-        print(
-            "AP @{:.2f}-{:.2f}:\t {:.3f}".format(
-                iou_thresholds[0], iou_thresholds[-1], AP
-            )
-        )
+        print("AP @{:.2f}-{:.2f}:\t {:.3f}".format(iou_thresholds[0], iou_thresholds[-1], AP))
     return AP
 
 
@@ -896,9 +874,7 @@ def download_trained_weights(coco_model_path, verbose=1):
     """
     if verbose > 0:
         print("Downloading pretrained model to " + coco_model_path + " ...")
-    with urllib.request.urlopen(COCO_MODEL_URL) as resp, open(
-        coco_model_path, "wb"
-    ) as out:
+    with urllib.request.urlopen(COCO_MODEL_URL) as resp, open(coco_model_path, "wb") as out:
         shutil.copyfileobj(resp, out)
     if verbose > 0:
         print("... done downloading pretrained model!")

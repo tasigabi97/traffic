@@ -1,1 +1,1 @@
-from traffic.strings.i import *
+from traffic.strings.independent import *

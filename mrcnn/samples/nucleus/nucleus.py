@@ -218,9 +218,7 @@ class NucleusDataset(utils.Dataset):
             self.add_image(
                 "nucleus",
                 image_id=image_id,
-                path=os.path.join(
-                    dataset_dir, image_id, "images/{}.png".format(image_id)
-                ),
+                path=os.path.join(dataset_dir, image_id, "images/{}.png".format(image_id)),
             )
 
     def load_mask(self, image_id):
@@ -278,9 +276,7 @@ def train(model, dataset_dir, subset):
         [
             iaa.Fliplr(0.5),
             iaa.Flipud(0.5),
-            iaa.OneOf(
-                [iaa.Affine(rotate=90), iaa.Affine(rotate=180), iaa.Affine(rotate=270)]
-            ),
+            iaa.OneOf([iaa.Affine(rotate=90), iaa.Affine(rotate=180), iaa.Affine(rotate=270)]),
             iaa.Multiply((0.8, 1.5)),
             iaa.GaussianBlur(sigma=(0.0, 5.0)),
         ],
@@ -433,9 +429,7 @@ if __name__ == "__main__":
     import argparse
 
     # Parse command line arguments
-    parser = argparse.ArgumentParser(
-        description="Mask R-CNN for nuclei counting and segmentation"
-    )
+    parser = argparse.ArgumentParser(description="Mask R-CNN for nuclei counting and segmentation")
     parser.add_argument("command", metavar="<command>", help="'train' or 'detect'")
     parser.add_argument(
         "--dataset",

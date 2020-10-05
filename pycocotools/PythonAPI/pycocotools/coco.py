@@ -79,9 +79,7 @@ class COCO:
             print("loading annotations into memory...")
             tic = time.time()
             dataset = json.load(open(annotation_file, "r"))
-            assert (
-                type(dataset) == dict
-            ), "annotation file format {} not supported".format(type(dataset))
+            assert type(dataset) == dict, "annotation file format {} not supported".format(type(dataset))
             print("Done (t={:0.2f}s)".format(time.time() - tic))
             self.dataset = dataset
             self.createIndex()
@@ -141,26 +139,12 @@ class COCO:
             anns = self.dataset["annotations"]
         else:
             if not len(imgIds) == 0:
-                lists = [
-                    self.imgToAnns[imgId] for imgId in imgIds if imgId in self.imgToAnns
-                ]
+                lists = [self.imgToAnns[imgId] for imgId in imgIds if imgId in self.imgToAnns]
                 anns = list(itertools.chain.from_iterable(lists))
             else:
                 anns = self.dataset["annotations"]
-            anns = (
-                anns
-                if len(catIds) == 0
-                else [ann for ann in anns if ann["category_id"] in catIds]
-            )
-            anns = (
-                anns
-                if len(areaRng) == 0
-                else [
-                    ann
-                    for ann in anns
-                    if ann["area"] > areaRng[0] and ann["area"] < areaRng[1]
-                ]
-            )
+            anns = anns if len(catIds) == 0 else [ann for ann in anns if ann["category_id"] in catIds]
+            anns = anns if len(areaRng) == 0 else [ann for ann in anns if ann["area"] > areaRng[0] and ann["area"] < areaRng[1]]
         if not iscrowd == None:
             ids = [ann["id"] for ann in anns if ann["iscrowd"] == iscrowd]
         else:
@@ -183,21 +167,9 @@ class COCO:
             cats = self.dataset["categories"]
         else:
             cats = self.dataset["categories"]
-            cats = (
-                cats
-                if len(catNms) == 0
-                else [cat for cat in cats if cat["name"] in catNms]
-            )
-            cats = (
-                cats
-                if len(supNms) == 0
-                else [cat for cat in cats if cat["supercategory"] in supNms]
-            )
-            cats = (
-                cats
-                if len(catIds) == 0
-                else [cat for cat in cats if cat["id"] in catIds]
-            )
+            cats = cats if len(catNms) == 0 else [cat for cat in cats if cat["name"] in catNms]
+            cats = cats if len(supNms) == 0 else [cat for cat in cats if cat["supercategory"] in supNms]
+            cats = cats if len(catIds) == 0 else [cat for cat in cats if cat["id"] in catIds]
         ids = [cat["id"] for cat in cats]
         return ids
 
@@ -287,9 +259,7 @@ class COCO:
                         # mask
                         t = self.imgs[ann["image_id"]]
                         if type(ann["segmentation"]["counts"]) == list:
-                            rle = maskUtils.frPyObjects(
-                                [ann["segmentation"]], t["height"], t["width"]
-                            )
+                            rle = maskUtils.frPyObjects([ann["segmentation"]], t["height"], t["width"])
                         else:
                             rle = [ann["segmentation"]]
                         m = maskUtils.decode(rle)
@@ -331,9 +301,7 @@ class COCO:
                     )
             p = PatchCollection(polygons, facecolor=color, linewidths=0, alpha=0.4)
             ax.add_collection(p)
-            p = PatchCollection(
-                polygons, facecolor="none", edgecolors=color, linewidths=2
-            )
+            p = PatchCollection(polygons, facecolor="none", edgecolors=color, linewidths=2)
             ax.add_collection(p)
         elif datasetType == "captions":
             for ann in anns:
@@ -363,16 +331,10 @@ class COCO:
             anns = resFile
         assert type(anns) == list, "results in not an array of objects"
         annsImgIds = [ann["image_id"] for ann in anns]
-        assert set(annsImgIds) == (
-            set(annsImgIds) & set(self.getImgIds())
-        ), "Results do not correspond to current coco set"
+        assert set(annsImgIds) == (set(annsImgIds) & set(self.getImgIds())), "Results do not correspond to current coco set"
         if "caption" in anns[0]:
-            imgIds = set([img["id"] for img in res.dataset["images"]]) & set(
-                [ann["image_id"] for ann in anns]
-            )
-            res.dataset["images"] = [
-                img for img in res.dataset["images"] if img["id"] in imgIds
-            ]
+            imgIds = set([img["id"] for img in res.dataset["images"]]) & set([ann["image_id"] for ann in anns])
+            res.dataset["images"] = [img for img in res.dataset["images"] if img["id"] in imgIds]
             for id, ann in enumerate(anns):
                 ann["id"] = id + 1
         elif "bbox" in anns[0] and not anns[0]["bbox"] == []:
@@ -432,9 +394,7 @@ class COCO:
             fname = os.path.join(tarDir, img["file_name"])
             if not os.path.exists(fname):
                 urlretrieve(img["coco_url"], fname)
-            print(
-                "downloaded {}/{} images (t={:0.1f}s)".format(i, N, time.time() - tic)
-            )
+            print("downloaded {}/{} images (t={:0.1f}s)".format(i, N, time.time() - tic))
 
     def loadNumpyAnnotations(self, data):
         """
