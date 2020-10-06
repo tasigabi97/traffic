@@ -111,7 +111,7 @@ with ci_manager() as (iF, tF, pF, sF):
         CUSTOM_IMAGE_NAME,
         interactive_bash_command(PYTHON, path_in_container(MAIN_PATH)),
     )
-    pF.pytest = container_proc(AUTO_REMOVE, CUSTOM_IMAGE_NAME, PYTEST, DONT_CAPTURE_OUTPUT)
+    pF.pytest = container_proc(AUTO_REMOVE, CUSTOM_IMAGE_NAME, interactive_bash_command(PYTEST, DONT_CAPTURE_OUTPUT))
     pF.delete_stopped_containers = bash_proc(DOCKER, CONTAINER, PRUNE, FORCE)
     pF.delete_custom_image = bash_proc(DOCKER, IMAGE, REMOVE, FORCE, CUSTOM_IMAGE_NAME)
     pF.commit_container = bash_proc(DOCKER, COMMIT, IMAGE_WORKDIR, CONTAINER_NAME, CUSTOM_IMAGE_NAME)

@@ -1,5 +1,6 @@
 from traffic.imports import Callable
 from traffic.strings import concat, to_func_name
+from traffic.consts import DOT
 
 
 def name(tested: Callable, name: str, globals: dict):
@@ -12,3 +13,11 @@ def name(tested: Callable, name: str, globals: dict):
         return func
 
     return decorator
+
+
+def absolute_name(tested: Callable):
+    return concat([tested.__module__, tested.__name__], DOT)
+
+
+def relative_name(__name__: str, tested: Callable):
+    return concat([__name__, tested.__name__], DOT)

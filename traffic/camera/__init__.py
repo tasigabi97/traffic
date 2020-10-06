@@ -1,9 +1,6 @@
-from traffic.imports import VideoCapture, cvtColor, Tuple, List, contextmanager, ndarray
+from traffic.imports import VideoCapture, cvtColor, Tuple, List, contextmanager, ndarray, cycle, imshow, waitKey, destroyAllWindows
 from traffic.logging import root_logger
-from traffic.consts import SSID_MONOR, SSID_VODAFONE
-from traffic.utils import get_ssid
-from subprocess import Popen, PIPE, STDOUT
-import subprocess
+from traffic.utils import webcam_server
 
 
 class Camera(object):
@@ -70,16 +67,31 @@ class Camera(object):
 
 @contextmanager
 def get_cameras(code: int = None) -> List[Camera]:
-    N = 4
-    cameras = []
-    for id in range(N):
-        camera = Camera(id, code)
-        try:
-            camera.__enter__()
-        except ConnectionError as e:
-            root_logger.warning(e)
-        else:
-            cameras.append(camera)
-    yield cameras
-    for camera in reversed(cameras):
-        camera.__exit__(None, None, None)
+    with webcam_server():
+        N = 4
+        cameras = []
+        for id in range(N):
+            camera = Camera(id, code)
+            try:
+                camera.__enter__()
+            except ConnectionError as e:
+                root_logger.warning(e)
+            else:
+                cameras.append(camera)
+        yield cameras
+        for camera in reversed(cameras):
+            camera.__exit__(None, None, None)
+
+
+@contextmanager
+def choose_camera(code: int = None) -> Camera:
+    with get_cameras(code) as cameras:
+        keys = [ord(str(camera.id)) for camera in cameras]
+        for camera in cycle(cameras):
+            imshow("{}-> ({})".format(choose_camera.__name__, camera.name), camera.img)
+            w_key = waitKey(1) & 0xFF
+            if w_key in keys:
+                destroyAllWindows()
+                yield cameras[keys.index(w_key)]
+                destroyAllWindows()
+                return

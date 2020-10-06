@@ -21,7 +21,8 @@ def webcam_server():
         return
     try:
         p = Popen([DROIDCAM, "-v", ip, DROIDCAM_PORT])
-    except FileNotFoundError:
+    except FileNotFoundError as e:
+        root_logger.warning(e)
         raise FileNotFoundError("Restart the computer and install droidcam again.")
     else:
         yield

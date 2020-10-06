@@ -1,14 +1,13 @@
 def main():
-    from traffic.camera import get_cameras, webcam_server
-    from traffic.imports import imshow, waitKey, destroyAllWindows, cycle
+    from traffic.camera import choose_camera
+    from traffic.imports import imshow, waitKey, destroyAllWindows
 
-    with webcam_server():
-        with get_cameras() as cameras:
-            for camera in cycle(cameras):
-                imshow(camera.name, camera.img)
-                if waitKey(1) & 0xFF == ord("q"):
-                    break
-        destroyAllWindows()
+    with choose_camera() as camera:
+        while True:
+            imshow("{}-> ({})".format("Chosen", camera.name), camera.img)
+            key = waitKey(1) & 0xFF
+            if key == ord("q"):
+                break
 
 
 if __name__ == "__main__":

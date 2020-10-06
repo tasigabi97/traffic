@@ -13,6 +13,7 @@ DROIDCAM = "droidcam-cli"
 DROIDCAM_PORT = "4747"
 DOCKER = "sudo docker"
 DONT_CAPTURE_OUTPUT = "-s"
+DOT = "."
 DOUBLE_QUOTE = '"'
 ENABLE_DISPLAY_HOST = "xhost +local:"
 FORCE = "-f"
