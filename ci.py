@@ -136,7 +136,6 @@ with ci_manager() as (iF, tF, pF, sF):
         pF.init_docs,
     ]
     sF.setup = [
-        ("", pF.install_droidcam_host),
         ("", pF.setup_install),
         ("", pF.install_make),
         ("", pF.install_nvidia_docker),
@@ -145,6 +144,7 @@ with ci_manager() as (iF, tF, pF, sF):
         ("", pF.create_container),
         ("", pF.commit_container),
         ("", pF.delete_stopped_containers),
+        ("", pF.install_droidcam_host),
     ]
     sF.list = [("", pF.list_containers), ("", pF.list_images)]
     sF.recreate = [
