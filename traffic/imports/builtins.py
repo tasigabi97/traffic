@@ -1,4 +1,4 @@
-import contextlib, itertools, logging, re, subprocess, typing, os
+import contextlib, itertools, logging, re, subprocess, typing, os,unittest.mock
 
 abspath = os.path.abspath
 Callable = typing.Callable
@@ -15,6 +15,7 @@ join_path = os.path.join
 List = typing.List
 LogRecord = logging.LogRecord
 normpath = os.path.normpath
+patch=unittest.mock.patch
 Popen = subprocess.Popen
 realpath = os.path.realpath
 SequenceType = typing.Sequence
