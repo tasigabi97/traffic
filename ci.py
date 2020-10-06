@@ -136,10 +136,10 @@ with ci_manager() as (iF, tF, pF, sF):
         pF.init_docs,
     ]
     sF.setup = [
+        ("", pF.install_droidcam_host),
         ("", pF.setup_install),
         ("", pF.install_make),
         ("", pF.install_nvidia_docker),
-        ("", pF.install_droidcam_host),
         ("", pF.delete_stopped_containers),
         ("", pF.delete_custom_image),
         ("", pF.create_container),
