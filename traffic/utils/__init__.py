@@ -27,3 +27,15 @@ def webcam_server():
     else:
         yield
         p.kill()
+
+
+class Singleton(object):
+    _instances = dict()
+
+    def __new__(this_cls, *args, **kwargs):
+        for a_singleton_cls, old_instance in Singleton._instances.items():
+            if this_cls is a_singleton_cls:
+                return old_instance
+        new_instance = super().__new__(this_cls)
+        Singleton._instances[this_cls] = new_instance
+        return new_instance

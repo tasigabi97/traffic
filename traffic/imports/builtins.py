@@ -1,4 +1,4 @@
-import contextlib, itertools, logging, re, subprocess, typing, os, unittest.mock
+import collections, contextlib, itertools, logging, re, subprocess, typing, os, unittest.mock
 
 abspath = os.path.abspath
 Callable = typing.Callable
@@ -11,6 +11,8 @@ dirname = os.path.dirname
 Formatter = logging.Formatter
 getcwd = os.getcwd
 getLogger = logging.getLogger
+Iterable_abc = collections.abc.Iterable
+Iterable_type = typing.Iterable
 join_path = os.path.join
 List = typing.List
 LogRecord = logging.LogRecord
@@ -22,3 +24,4 @@ SequenceType = typing.Sequence
 StreamHandler = logging.StreamHandler
 Tuple = typing.Tuple
 sub = re.sub
+Union = typing.Union

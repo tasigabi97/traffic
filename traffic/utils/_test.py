@@ -1,8 +1,12 @@
 from traffic.testing import name, absolute_name
-from traffic.utils import get_ssid, webcam_server
+from traffic.utils import get_ssid, webcam_server, Singleton
 from traffic.consts import SSID_MONOR, SSID_VODAFONE, DROIDCAM, SPACE
-from traffic.imports import patch, check_output, CalledProcessError
+from traffic.imports import patch, check_output, Iterable_abc, Iterable_type
 from traffic.logging import root_logger
+
+
+def setup_function(function):
+    Singleton._instances = dict()
 
 
 def is_droidcam_running():
@@ -11,6 +15,64 @@ def is_droidcam_running():
     root_logger.info(out)
     root_logger.info(ret)
     return ret
+
+
+@name(Iterable_abc, "abc", globals())
+def _():
+    assert isinstance(dict(), Iterable_abc)
+    assert isinstance([], Iterable_abc)
+    assert isinstance(set(), Iterable_abc)
+    assert isinstance("", Iterable_abc)
+    assert not isinstance(1, Iterable_abc)
+
+
+@name(Iterable_type, "type", globals())
+def _():
+    assert isinstance(dict(), Iterable_type)
+    assert isinstance([], Iterable_type)
+    assert isinstance(set(), Iterable_type)
+    assert isinstance("", Iterable_type)
+    assert not isinstance(1, Iterable_type)
+
+
+@name(Singleton.__new__, "work with self", globals())
+def _():
+    assert Singleton._instances == dict()
+    a = Singleton()
+    b = Singleton()
+    assert a is b
+    assert len(Singleton._instances) == 1
+    assert Singleton._instances[Singleton] is a
+
+
+@name(Singleton.__new__, "work new class", globals())
+def _():
+    class A(Singleton):
+        ...
+
+    assert Singleton._instances == dict()
+    a = A()
+    b = A()
+    assert a is b
+    assert len(Singleton._instances) == 1
+    assert Singleton._instances[A] is a
+
+
+@name(Singleton.__new__, "work new classes", globals())
+def _():
+    class A(Singleton):
+        ...
+
+    class B(Singleton):
+        ...
+
+    assert Singleton._instances == dict()
+    a = A()
+    b = B()
+    assert a is not b
+    assert len(Singleton._instances) == 2
+    assert Singleton._instances[A] is a
+    assert Singleton._instances[B] is b
 
 
 @name(get_ssid, "1", globals())

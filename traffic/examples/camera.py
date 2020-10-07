@@ -1,6 +1,6 @@
 def main():
     from traffic.camera import choose_camera
-    from traffic.imports import imshow, waitKey, destroyAllWindows
+    from traffic.imports import imshow, waitKey
 
     with choose_camera() as camera:
         while True:
