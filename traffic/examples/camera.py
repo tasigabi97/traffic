@@ -1,12 +1,13 @@
 def main():
     from traffic.camera import choose_camera
-    from traffic.imports import imshow, waitKey
+    from traffic.imports import imshow
+    from traffic.globals import g
 
     with choose_camera() as camera:
+        g.wait_keys = "q"
         while True:
-            imshow("{}-> ({})".format("Chosen", camera.name), camera.img)
-            key = waitKey(1) & 0xFF
-            if key == ord("q"):
+            imshow("Chosen-> ({})".format(camera.name), camera.img)
+            if g.pressed_key is not None:
                 break
 
 

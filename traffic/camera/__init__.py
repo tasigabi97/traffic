@@ -1,6 +1,7 @@
-from traffic.imports import VideoCapture, cvtColor, Tuple, List, contextmanager, ndarray, cycle, imshow, waitKey, destroyAllWindows
+from traffic.imports import VideoCapture, cvtColor, Tuple, List, contextmanager, ndarray, cycle, imshow, destroyAllWindows
 from traffic.logging import root_logger
 from traffic.utils import webcam_server
+from traffic.globals import g
 
 
 class Camera(object):
@@ -83,15 +84,17 @@ def get_cameras(code: int = None) -> List[Camera]:
             camera.__exit__(None, None, None)
 
 
+# todo ne is lehessen többször megnyitni egy kamerát
 @contextmanager
 def choose_camera(code: int = None) -> Camera:
     with get_cameras(code) as cameras:
-        keys = [ord(str(camera.id)) for camera in cameras]
+        g.wait_keys = [camera.id for camera in cameras]
+        root_logger.info("Waitkeys={}".format(g.wait_keys))
         for camera in cycle(cameras):
             imshow("{}-> ({})".format(choose_camera.__name__, camera.name), camera.img)
-            w_key = waitKey(1) & 0xFF
-            if w_key in keys:
+            key = g.pressed_key
+            if key is not None:
                 destroyAllWindows()
-                yield cameras[keys.index(w_key)]
+                yield cameras[g.wait_keys.index(key)]
                 destroyAllWindows()
                 return

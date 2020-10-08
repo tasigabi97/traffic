@@ -13,8 +13,8 @@ def _():
     g = Globals()
     with raises(AttributeError):
         g.wait_keys
-    g._wait_keys = 1
-    assert g.wait_keys == 1
+    g._wait_keys = [49]
+    assert g.wait_keys == ["1"]
 
 
 @name(Globals.wait_keys.fset, "2", globals())
@@ -28,10 +28,23 @@ def _():
     assert g._wait_keys == [49]
 
 
-@name(Globals.pressed_key.fget, "1", globals())
+@name(Globals.pressed_key.fget, "good input", globals())
 @patch(relative_name(__name__, waitKey))
 def _(mocked_waitKey):
+    mocked_waitKey.return_value = 49
     g = Globals()
     g._wait_keys = [48, 49]
-    g.pressed_key
+    a = g.pressed_key
     mocked_waitKey.assert_called_once_with(1)
+    assert a is "1"
+
+
+@name(Globals.pressed_key.fget, "bad input", globals())
+@patch(relative_name(__name__, waitKey))
+def _(mocked_waitKey):
+    mocked_waitKey.return_value = 49
+    g = Globals()
+    g._wait_keys = [48, 50]
+    a = g.pressed_key
+    mocked_waitKey.assert_called_once_with(1)
+    assert a is None

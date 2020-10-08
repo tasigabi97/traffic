@@ -4,8 +4,8 @@ from traffic.imports import Union, Iterable_type, List, waitKey
 
 class Globals(Singleton):
     @property
-    def wait_keys(self) -> List[int]:
-        return self._wait_keys
+    def wait_keys(self) -> List[str]:
+        return [chr(key) for key in self._wait_keys]
 
     @wait_keys.setter
     def wait_keys(self, keys: Union[int, str, Iterable_type[Union[int, str]]]):
@@ -25,3 +25,6 @@ class Globals(Singleton):
         for key in self._wait_keys:
             if pressed == key:
                 return chr(pressed)
+
+
+g = Globals()
