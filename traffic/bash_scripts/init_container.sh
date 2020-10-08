@@ -43,7 +43,7 @@ unzip droidcam_latest.zip -d droidcam && rm droidcam_latest.zip
 
 echo SET BASH DEFAULTS
 echo "alias python=python3" >> /etc/bash.bashrc
-echo export PYTHONPATH="/traffic:/traffic/mrcnn" >> /etc/bash.bashrc
+echo export PYTHONPATH="/traffic:/traffic/mrcnn:/traffic/mrcnn/samples/coco" >> /etc/bash.bashrc
 echo export PATH="$PATH:/droidcam" >> /etc/bash.bashrc
 echo alias @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 bash -i -c "alias"

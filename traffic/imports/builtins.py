@@ -1,13 +1,15 @@
-import collections, contextlib, itertools, logging, re, subprocess, typing, os, unittest.mock
+import collections, contextlib, itertools, logging, random, re, subprocess, typing, os, unittest.mock
 
 abspath = os.path.abspath
 Callable = typing.Callable
 CalledProcessError = subprocess.CalledProcessError
 check_output = subprocess.check_output
+choice = random.choice
 contextmanager = contextlib.contextmanager
 cycle = itertools.cycle
 DEBUG = logging.DEBUG
 dirname = os.path.dirname
+exists = os.path.exists
 Formatter = logging.Formatter
 getcwd = os.getcwd
 getLogger = logging.getLogger
@@ -15,6 +17,7 @@ Iterable_abc = collections.abc.Iterable
 Iterable_type = typing.Iterable
 join_path = os.path.join
 List = typing.List
+listdir = os.listdir
 LogRecord = logging.LogRecord
 normpath = os.path.normpath
 patch = unittest.mock.patch
