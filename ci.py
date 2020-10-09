@@ -105,6 +105,7 @@ with ci_manager() as (iF, tF, pF, sF):
         BASH,
         path_in_container(INIT_CONTAINER_PATH),
     )
+    pF.install_python_host = bash_proc(DOT, INSTALL_PYTHON_HOST_PATH)
     pF.container_bash = container_proc(AUTO_REMOVE, CUSTOM_IMAGE_NAME, BASH)
     pF.container_main = container_proc(
         AUTO_REMOVE,
@@ -145,6 +146,7 @@ with ci_manager() as (iF, tF, pF, sF):
         ("", pF.commit_container),
         ("", pF.delete_stopped_containers),
         ("", pF.install_droidcam_host),
+        ("", pF.install_python_host),
     ]
     sF.list = [("", pF.list_containers), ("", pF.list_images)]
     sF.recreate = [
@@ -162,3 +164,4 @@ with ci_manager() as (iF, tF, pF, sF):
         ("", pF.enable_display),
         ("", pF.container_bash),
     ]
+    sF.install_python_host = [pF.install_python_host]
