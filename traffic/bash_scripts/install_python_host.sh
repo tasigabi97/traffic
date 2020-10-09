@@ -1,19 +1,33 @@
 # This file must be used with "source bin/activate" *from bash* you cannot run it directly
 cd /home/gabi/PycharmProjects/traffic/
+echo INSTALL PROGRAMS
+echo apt install software-properties-common @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 sudo apt install software-properties-common
+echo add-apt-repository -y ppa:deadsnakes/ppa @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 sudo add-apt-repository -y ppa:deadsnakes/ppa
+echo apt update @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 sudo apt update
+echo apt install -y python3.5 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 sudo apt install -y python3.5
+echo apt install -y python3-virtualenv @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 sudo apt install -y python3-virtualenv
+echo apt install -y python3-tk @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 sudo apt install -y python3-tk
+echo apt-get install -y libfreetype6-dev @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 sudo apt-get install -y libfreetype6-dev
+echo apt-get install -y python3.5-dev @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 sudo apt-get install -y python3.5-dev
+echo apt install -y libcurl4-openssl-dev libssl-dev @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 sudo apt install -y libcurl4-openssl-dev libssl-dev
+echo apt-get install -y python3-distutils-extra @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 sudo apt-get install -y python3-distutils-extra
+echo virtualenv -p /usr/bin/python3.5 /home/gabi/PycharmProjects/traffic/venv3.5 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
 virtualenv -p /usr/bin/python3.5 /home/gabi/PycharmProjects/traffic/venv3.5
 sudo chmod 777 /home/gabi/PycharmProjects/traffic/venv3.5/bin/activate
 echo export PYTHONPATH="/home/gabi/PycharmProjects/traffic:/home/gabi/PycharmProjects/traffic/mrcnn:/home/gabi/PycharmProjects/traffic/mrcnn/samples/coco" >> /home/gabi/PycharmProjects/traffic/venv3.5/bin/activate
 . /home/gabi/PycharmProjects/traffic/venv3.5/bin/activate
+
 echo INSTALL PYPI PACKAGES
 echo install --upgrade pip @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 pip install --upgrade pip
