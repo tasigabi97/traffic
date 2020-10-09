@@ -1,6 +1,7 @@
 def main():
     from traffic.imports import listdir, imread, join_path, choice, exists
-    from mrcnn import visualize
+    from mrcnn.visualize import display_instances
+    from traffic.utils import display_instances
     from mrcnn.model import MaskRCNN
     from mrcnn.utils import download_trained_weights
     from coco import CocoConfig
@@ -110,7 +111,7 @@ def main():
     image = imread(join_path(IMAGE_DIR, choice(listdir(IMAGE_DIR))))
     results = model.detect([image], verbose=1)
     r = results[0]
-    visualize.display_instances(image, r["rois"], r["masks"], r["class_ids"], class_names, r["scores"])
+    display_instances(image, r["rois"], r["masks"], r["class_ids"], class_names, r["scores"])
 
 
 if __name__ == "__main__":

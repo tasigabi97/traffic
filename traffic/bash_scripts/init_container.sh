@@ -33,9 +33,9 @@ echo INSTALL PYCOCOTOOLS @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 cd /traffic/pycocotools/PythonAPI && python3 setup.py build_ext install
 
 echo SAVE PACKAGES @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-pip freeze > "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
-chmod 777 "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
-cat "/traffic/requirements.$(pip show tensorflow-gpu | grep  Version | grep -o 1.*).txt"
+pip freeze > "/traffic/requirements.txt"
+chmod 777 "/traffic/requirements.txt"
+cat "/traffic/requirements.txt"
 
 echo INSTALL DROIDCAM @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 cd / && wget https://files.dev47apps.net/linux/droidcam_latest.zip
