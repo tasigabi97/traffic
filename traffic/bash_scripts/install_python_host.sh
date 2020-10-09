@@ -48,5 +48,7 @@ pip install tensorflow-gpu==1.12.0
 echo install pytest @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 pip install pytest
 echo INSTALL PYCOCOTOOLS @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+sudo rm -rf build
 cd /home/gabi/PycharmProjects/traffic/pycocotools/PythonAPI && python setup.py build_ext install
+echo SET PYCHARM PATH @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 cp /home/gabi/PycharmProjects/traffic/jdk.table.xml /home/gabi/.config/JetBrains/PyCharmCE2020.2/options/jdk.table.xml
