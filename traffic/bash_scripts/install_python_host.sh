@@ -31,6 +31,8 @@ echo install keras==2.0.8 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 pip install keras==2.0.8
 echo install tensorflow-gpu==1.12.0 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 pip install tensorflow-gpu==1.12.0
+echo install pytest @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+pip install pytest
 echo INSTALL PYCOCOTOOLS @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 cd /home/gabi/PycharmProjects/traffic/pycocotools/PythonAPI && python setup.py build_ext install
 cp /home/gabi/PycharmProjects/traffic/jdk.table.xml /home/gabi/.config/JetBrains/PyCharmCE2020.2/options/jdk.table.xml
