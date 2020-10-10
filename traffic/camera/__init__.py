@@ -52,6 +52,10 @@ class Camera(object):
         return cvtColor(self._video_capture.read()[1], self._code)
 
     @property
+    def matplotlib_img(self) -> ndarray:
+        return self.img[:, :, 2::-1]
+
+    @property
     def id(self):
         return self._id
 
