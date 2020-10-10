@@ -6,7 +6,8 @@ from traffic.examples.mrcnn import main as mrcnn_main
 
 if __name__ == "__main__":
     mrcnn_main()
-    input(11111111111111)
+    input()
     camera_main()
+    input()
     tensorflow_1_main()
     # original_camera_main() #nem működik legtöbbször mert bele van égetve a kamera index

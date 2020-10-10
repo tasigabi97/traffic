@@ -1,3 +1,4 @@
+from traffic.utils.time import *
 from traffic.imports import (
     check_output,
     CalledProcessError,
@@ -58,21 +59,21 @@ def set_axes(
         assert INSTANCE_NUMBER == instance_masks_boolean.shape[-1] == instance_class_ids.shape[0]
     title = title or "{}->Number of instances: {}".format(set_axes.__name__, INSTANCE_NUMBER)
     instance_colors = instance_colors or random_colors(INSTANCE_NUMBER)
-
-    root_logger.info("type(image):{}".format(type(image)))
-    root_logger.info("str(image):{}".format(str(image)))
-    root_logger.info("type(boxes):{}".format(type(instance_boxes)))
-    root_logger.info("str(boxes):{}".format(str(instance_boxes)))
-    root_logger.info("type(masks):{}".format(type(instance_masks_boolean)))
-    root_logger.info("str(masks):{}".format(str(instance_masks_boolean)))
-    root_logger.info("type(class_ids){}:".format(type(instance_class_ids)))
-    root_logger.info("str(class_ids):{}".format(str(instance_class_ids)))
-    root_logger.info("type(class_names){}:".format(type(all_class_names)))
-    root_logger.info("str(class_names):{}".format(str(all_class_names)))
-    root_logger.info("type(scores){}:".format(type(instance_scores)))
-    root_logger.info("str(scores):{}".format(str(instance_scores)))
-    root_logger.info("type(colors):{}".format(type(instance_colors)))
-    root_logger.info("str(colors):{}".format(str(instance_colors)))
+    if False:
+        root_logger.info("type(image):{}".format(type(image)))
+        root_logger.info("str(image):{}".format(str(image)))
+        root_logger.info("type(boxes):{}".format(type(instance_boxes)))
+        root_logger.info("str(boxes):{}".format(str(instance_boxes)))
+        root_logger.info("type(masks):{}".format(type(instance_masks_boolean)))
+        root_logger.info("str(masks):{}".format(str(instance_masks_boolean)))
+        root_logger.info("type(class_ids){}:".format(type(instance_class_ids)))
+        root_logger.info("str(class_ids):{}".format(str(instance_class_ids)))
+        root_logger.info("type(class_names){}:".format(type(all_class_names)))
+        root_logger.info("str(class_names):{}".format(str(all_class_names)))
+        root_logger.info("type(scores){}:".format(type(instance_scores)))
+        root_logger.info("str(scores):{}".format(str(instance_scores)))
+        root_logger.info("type(colors):{}".format(type(instance_colors)))
+        root_logger.info("str(colors):{}".format(str(instance_colors)))
     # átlátszó fehér keret a kép körül
     ax.cla()
     ax.set_ylim(image.shape[0] + 20, -20)

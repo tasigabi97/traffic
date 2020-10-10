@@ -1,34 +1,10 @@
 def main():
-    from traffic.imports import listdir, imread, join_path, choice, exists, subplots, show, ion, Figure, cla
-    from traffic.utils import set_axes
+    from traffic.imports import listdir, imread, join_path, choice, exists, subplots, show, ion, sleep
+    from traffic.utils import set_axes, Timer
     from mrcnn.model import MaskRCNN
     from mrcnn.utils import download_trained_weights
     from coco import CocoConfig
 
-    ion()
-    fig, ax = subplots()
-    show()
-    input("Waiting for figure")
-
-    ROOT_DIR = "/traffic/mrcnn"
-    MODEL_DIR = join_path(ROOT_DIR, "logs")
-    COCO_MODEL_PATH = join_path(ROOT_DIR, "mask_rcnn_coco.h5")
-    IMAGE_DIR = join_path(ROOT_DIR, "images")
-    if not exists(COCO_MODEL_PATH):
-        download_trained_weights(COCO_MODEL_PATH)
-    assert ROOT_DIR == "/traffic/mrcnn"
-    assert MODEL_DIR == "/traffic/mrcnn/logs"
-    assert IMAGE_DIR == "/traffic/mrcnn/images"
-    assert COCO_MODEL_PATH == "/traffic/mrcnn/mask_rcnn_coco.h5"
-
-    class InferenceConfig(CocoConfig):
-        GPU_COUNT = 1
-        IMAGES_PER_GPU = 1
-
-    config = InferenceConfig()
-    config.display()
-    model = MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=config)
-    model.load_weights(COCO_MODEL_PATH, by_name=True)
     class_names = [
         "BG",
         "person",
@@ -112,21 +88,51 @@ def main():
         "hair drier",
         "toothbrush",
     ]
+    ROOT_DIR = "/traffic/mrcnn"
+    MODEL_DIR = join_path(ROOT_DIR, "logs")
+    COCO_MODEL_PATH = join_path(ROOT_DIR, "mask_rcnn_coco.h5")
+    IMAGE_DIR = join_path(ROOT_DIR, "images")
+    if not exists(COCO_MODEL_PATH):
+        download_trained_weights(COCO_MODEL_PATH)
+    assert ROOT_DIR == "/traffic/mrcnn"
+    assert MODEL_DIR == "/traffic/mrcnn/logs"
+    assert IMAGE_DIR == "/traffic/mrcnn/images"
+    assert COCO_MODEL_PATH == "/traffic/mrcnn/mask_rcnn_coco.h5"
 
-    while True:
-        image = imread(join_path(IMAGE_DIR, choice(listdir(IMAGE_DIR))))
-        results = model.detect([image], verbose=1)
-        r = results[0]
-        set_axes(
-            ax,
-            image,
-            r["rois"],
-            r["masks"],
-            r["class_ids"],
-            class_names,
-            r["scores"],
-        )
-        fig.canvas.draw()
+    class InferenceConfig(CocoConfig):
+        GPU_COUNT = 1
+        IMAGES_PER_GPU = 1
+
+    ion()
+    fig, ax = subplots()
+    show()
+    input("Wait for figure.")
+
+    timers = []
+    for batchsize in range(1, 5):
+        timer = Timer(str(batchsize))
+        timers.append(timer)
+        InferenceConfig.IMAGES_PER_GPU = batchsize
+        config = InferenceConfig()
+        config.display()
+        model = MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=config)
+        model.load_weights(COCO_MODEL_PATH, by_name=True)
+        for _ in range(2):
+            images = [imread(join_path(IMAGE_DIR, choice(listdir(IMAGE_DIR)))) for _ in range(batchsize)]
+            with timer:
+                result = model.detect(images, verbose=0)[0]
+            set_axes(
+                ax,
+                images[0],
+                result["rois"],
+                result["masks"],
+                result["class_ids"],
+                class_names,
+                result["scores"],
+                title="{}->{}".format(timer.name, timer.last_block_time),
+            )
+            fig.canvas.draw()
+    [print(timer.last_block_time / float(timer.name)) for timer in timers]
 
 
 if __name__ == "__main__":

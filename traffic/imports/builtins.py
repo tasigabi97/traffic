@@ -1,4 +1,4 @@
-import collections, contextlib, itertools, logging, random, re, subprocess, typing, os, unittest.mock
+import collections, contextlib, itertools, logging, random, re, statistics, subprocess, time, typing, os, unittest.mock
 
 abspath = os.path.abspath
 Callable = typing.Callable
@@ -19,11 +19,14 @@ join_path = os.path.join
 List = typing.List
 listdir = os.listdir
 LogRecord = logging.LogRecord
+mean = statistics.mean
 normpath = os.path.normpath
 patch = unittest.mock.patch
+perf_counter = time.perf_counter
 Popen = subprocess.Popen
 realpath = os.path.realpath
 SequenceType = typing.Sequence
+sleep = time.sleep
 StreamHandler = logging.StreamHandler
 Tuple = typing.Tuple
 sub = re.sub
