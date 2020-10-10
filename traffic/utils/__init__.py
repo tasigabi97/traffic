@@ -13,26 +13,31 @@ from traffic.imports import (
     find_contours,
     fliplr,
     show,
+    Tuple,
+    Array_imageio,
+    ndarray,
+    List,
+    Axes,
 )
 from traffic.logging import root_logger
 from traffic.consts import SSID_VODAFONE, IP_VODAFONE, DROIDCAM, DROIDCAM_PORT
 from mrcnn.visualize import random_colors, apply_mask
 
 
-def display_instances(
-    image,
-    boxes,
-    masks,
-    class_ids,
-    class_names,
-    scores=None,
-    title="",
-    figsize=(16, 16),
-    ax=None,
+def set_axes(
+    ax: Axes,
+    image: Array_imageio,
+    instance_boxes: ndarray,
+    instance_masks_boolean: ndarray,
+    instance_class_ids: ndarray,
+    all_class_names: List[str],
+    instance_scores: ndarray = None,
+    title: str = None,
     show_mask=True,
+    show_mask_contour=True,
     show_bbox=True,
-    colors=None,
-    captions=None,
+    instance_colors: List[Tuple[int, int, int]] = None,
+    instance_captions: List[str] = None,
 ):
     """
     boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
@@ -46,79 +51,71 @@ def display_instances(
     colors: (optional) An array or colors to use with each object
     captions: (optional) A list of strings to use as captions for each object
     """
-    # Number of instances
-    N = boxes.shape[0]
-    if not N:
-        print("\n*** No instances to display *** \n")
+    INSTANCE_NUMBER = instance_boxes.shape[0]
+    if not INSTANCE_NUMBER:
+        root_logger.warning("No instances to display!")
     else:
-        assert boxes.shape[0] == masks.shape[-1] == class_ids.shape[0]
+        assert INSTANCE_NUMBER == instance_masks_boolean.shape[-1] == instance_class_ids.shape[0]
+    title = title or "{}->Number of instances: {}".format(set_axes.__name__, INSTANCE_NUMBER)
+    instance_colors = instance_colors or random_colors(INSTANCE_NUMBER)
 
-    # If no axis is passed, create one and automatically call show()
-    auto_show = False
-    if not ax:
-        _, ax = subplots(1, figsize=figsize)
-        auto_show = True
-
-    # Generate random colors
-    colors = colors or random_colors(N)
-
-    # Show area outside image boundaries.
-    height, width = image.shape[:2]
-    ax.set_ylim(height + 10, -10)
-    ax.set_xlim(-10, width + 10)
+    root_logger.info("type(image):{}".format(type(image)))
+    root_logger.info("str(image):{}".format(str(image)))
+    root_logger.info("type(boxes):{}".format(type(instance_boxes)))
+    root_logger.info("str(boxes):{}".format(str(instance_boxes)))
+    root_logger.info("type(masks):{}".format(type(instance_masks_boolean)))
+    root_logger.info("str(masks):{}".format(str(instance_masks_boolean)))
+    root_logger.info("type(class_ids){}:".format(type(instance_class_ids)))
+    root_logger.info("str(class_ids):{}".format(str(instance_class_ids)))
+    root_logger.info("type(class_names){}:".format(type(all_class_names)))
+    root_logger.info("str(class_names):{}".format(str(all_class_names)))
+    root_logger.info("type(scores){}:".format(type(instance_scores)))
+    root_logger.info("str(scores):{}".format(str(instance_scores)))
+    root_logger.info("type(colors):{}".format(type(instance_colors)))
+    root_logger.info("str(colors):{}".format(str(instance_colors)))
+    # átlátszó fehér keret a kép körül
+    ax.cla()
+    ax.set_ylim(image.shape[0] + 20, -20)
+    ax.set_xlim(-20, image.shape[1] + 20)
     ax.axis("off")
     ax.set_title(title)
-
-    masked_image = image.astype(uint32).copy()
-    for i in range(N):
-        color = colors[i]
-
-        # Bounding box
-        if not any_np(boxes[i]):
-            # Skip this instance. Has no bbox. Likely lost in image cropping.
-            continue
-        y1, x1, y2, x2 = boxes[i]
-        if show_bbox:
-            p = Rectangle(
-                (x1, y1),
-                x2 - x1,
-                y2 - y1,
-                linewidth=2,
-                alpha=0.7,
-                linestyle="dashed",
-                edgecolor=color,
-                facecolor="none",
-            )
-            ax.add_patch(p)
-
-        # Label
-        if not captions:
-            class_id = class_ids[i]
-            score = scores[i] if scores is not None else None
-            label = class_names[class_id]
-            caption = "{} {:.3f}".format(label, score) if score else label
-        else:
-            caption = captions[i]
+    output_image = image.astype(uint32).copy()
+    for i in range(INSTANCE_NUMBER):
+        y1, x1, y2, x2 = instance_boxes[i]
+        if not (x1 or x2 or y1 or y2):
+            continue  # Skip this instance. Has no bbox. Likely lost in image cropping.
+        color = instance_colors[i]
+        mask = instance_masks_boolean[:, :, i]
+        class_id = instance_class_ids[i]
+        score = instance_scores[i] if instance_scores is not None else None
+        label = all_class_names[class_id]
+        caption = instance_captions[i] if instance_captions else "{} {:.3f}".format(label, score) if score else label
         ax.text(x1, y1 + 8, caption, color="w", size=11, backgroundcolor="none")
-
-        # Mask
-        mask = masks[:, :, i]
+        if show_bbox:
+            ax.add_patch(
+                Rectangle(
+                    (x1, y1),
+                    x2 - x1,
+                    y2 - y1,
+                    linewidth=2,
+                    alpha=0.7,
+                    linestyle="dashed",
+                    edgecolor=color,
+                    facecolor="none",
+                )
+            )
         if show_mask:
-            masked_image = apply_mask(masked_image, mask, color)
-
-        # Mask Polygon
-        # Pad to ensure proper polygons for masks that touch image edges.
-        padded_mask = zeros((mask.shape[0] + 2, mask.shape[1] + 2), dtype=uint8)
-        padded_mask[1:-1, 1:-1] = mask
-        contours = find_contours(padded_mask, 0.5)
-        for verts in contours:
-            # Subtract the padding and flip (y, x) to (x, y)
-            verts = fliplr(verts) - 1
-            p = Polygon(verts, facecolor="none", edgecolor=color)
-            ax.add_patch(p)
-    ax.imshow(masked_image.astype(uint8))
-    if auto_show:
-        show()
+            output_image = apply_mask(output_image, mask, color)
+        if show_mask_contour:
+            # Pad to ensure proper polygons for masks that touch image edges.
+            padded_mask = zeros((mask.shape[0] + 2, mask.shape[1] + 2), dtype=uint8)
+            padded_mask[1:-1, 1:-1] = mask
+            contours = find_contours(padded_mask, 0.5)
+            for verts in contours:
+                # Subtract the padding and flip (y, x) to (x, y)
+                verts = fliplr(verts) - 1
+                ax.add_patch(Polygon(verts, facecolor="none", edgecolor=color))
+    ax.imshow(output_image.astype(uint8))
 
 
 def get_ssid():

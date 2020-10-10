@@ -1,6 +1,14 @@
 from traffic.testing import name, relative_name
 from traffic.camera import Camera, get_cameras, __name__, webcam_server
-from traffic.imports import VideoCapture, COLOR_RGB2LUV, COLOR_RGB2GRAY, ndarray, raises, cvtColor, patch
+from traffic.imports import (
+    VideoCapture,
+    COLOR_RGB2LUV,
+    COLOR_RGB2GRAY,
+    ndarray,
+    raises,
+    cvtColor,
+    patch,
+)
 from traffic.logging import root_logger
 
 

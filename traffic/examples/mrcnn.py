@@ -1,10 +1,14 @@
 def main():
-    from traffic.imports import listdir, imread, join_path, choice, exists
-    from mrcnn.visualize import display_instances
-    from traffic.utils import display_instances
+    from traffic.imports import listdir, imread, join_path, choice, exists, subplots, show, ion, Figure, cla
+    from traffic.utils import set_axes
     from mrcnn.model import MaskRCNN
     from mrcnn.utils import download_trained_weights
     from coco import CocoConfig
+
+    ion()
+    fig, ax = subplots()
+    show()
+    input("Waiting for figure")
 
     ROOT_DIR = "/traffic/mrcnn"
     MODEL_DIR = join_path(ROOT_DIR, "logs")
@@ -108,10 +112,21 @@ def main():
         "hair drier",
         "toothbrush",
     ]
-    image = imread(join_path(IMAGE_DIR, choice(listdir(IMAGE_DIR))))
-    results = model.detect([image], verbose=1)
-    r = results[0]
-    display_instances(image, r["rois"], r["masks"], r["class_ids"], class_names, r["scores"])
+
+    while True:
+        image = imread(join_path(IMAGE_DIR, choice(listdir(IMAGE_DIR))))
+        results = model.detect([image], verbose=1)
+        r = results[0]
+        set_axes(
+            ax,
+            image,
+            r["rois"],
+            r["masks"],
+            r["class_ids"],
+            class_names,
+            r["scores"],
+        )
+        fig.canvas.draw()
 
 
 if __name__ == "__main__":

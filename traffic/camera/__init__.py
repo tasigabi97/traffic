@@ -1,4 +1,14 @@
-from traffic.imports import VideoCapture, cvtColor, Tuple, List, contextmanager, ndarray, cycle, imshow, destroyAllWindows
+from traffic.imports import (
+    VideoCapture,
+    cvtColor,
+    Tuple,
+    List,
+    contextmanager,
+    ndarray,
+    cycle,
+    imshow,
+    destroyAllWindows,
+)
 from traffic.logging import root_logger
 from traffic.utils import webcam_server
 from traffic.globals import g

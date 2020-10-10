@@ -1,4 +1,11 @@
-from traffic.imports import getLogger, DEBUG, StreamHandler, Formatter, LogRecord, colored
+from traffic.imports import (
+    getLogger,
+    DEBUG,
+    StreamHandler,
+    Formatter,
+    LogRecord,
+    colored,
+)
 
 
 def red(s: str) -> str:
