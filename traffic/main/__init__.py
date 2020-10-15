@@ -1,7 +1,11 @@
 if __name__ == "__main__":
-    from traffic.examples.new import main as new_main
+    from traffic.examples.train import main as train_main
 
-    new_main()
+    train_main()
+    input()
+    from traffic.examples.camera_with_mrcnn import main as camera_with_mrcnn_main
+
+    camera_with_mrcnn_main()
     input()
 
     from traffic.examples.camera import main as camera_main
@@ -9,9 +13,9 @@ if __name__ == "__main__":
     camera_main()
     input()
 
-    from traffic.examples.mrcnn import main as mrcnn_main
+    from traffic.examples.camera_batchsize_test import main as camera_batchsize_test_main
 
-    mrcnn_main()
+    camera_batchsize_test_main()
     input()
 
     from traffic.examples.tensorflow_1 import main as tensorflow_1_main
