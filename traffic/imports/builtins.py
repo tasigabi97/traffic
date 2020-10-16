@@ -20,6 +20,7 @@ List = typing.List
 listdir = os.listdir
 LogRecord = logging.LogRecord
 mean = statistics.mean
+namedtuple = collections.namedtuple
 normpath = os.path.normpath
 patch = unittest.mock.patch
 perf_counter = time.perf_counter

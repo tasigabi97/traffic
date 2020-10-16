@@ -33,6 +33,7 @@ def container_proc(*strings: str) -> list:
         USE_GPU,
         ENABLE_DISPLAY_CONTAINER,
         MOUNT_PROJECT,
+        MOUNT_LANE,
         NAME_CONTAINER,
         *strings,
     )
@@ -115,7 +116,7 @@ with ci_manager() as (iF, tF, pF, sF):
     pF.pytest = container_proc(
         AUTO_REMOVE,
         CUSTOM_IMAGE_NAME,
-        interactive_bash_command(PYTEST, DONT_CAPTURE_OUTPUT),
+        interactive_bash_command(PYTEST, "./traffic", DONT_CAPTURE_OUTPUT),
     )
     pF.delete_stopped_containers = bash_proc(DOCKER, CONTAINER, PRUNE, FORCE)
     pF.delete_custom_image = bash_proc(DOCKER, IMAGE, REMOVE, FORCE, CUSTOM_IMAGE_NAME)
