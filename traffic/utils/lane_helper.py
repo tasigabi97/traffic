@@ -106,8 +106,6 @@ name2label = {label.name: label for label in labels}
 id2label = {label.id: label for label in labels}
 # trainId to label object
 trainId2label = {label.trainId: label for label in reversed(labels)}
-color_to_train_id_dict = {label.color: label.trainId for label in labels}
-
 # category to list of label objects
 category2labels = {}
 for label in labels:

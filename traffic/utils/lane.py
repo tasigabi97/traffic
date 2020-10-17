@@ -11,7 +11,6 @@ from traffic.imports import (
     array,
     int32,
     bool_np,
-    reshape,
     zeros,
     uint8,
     apply_along_axis,
@@ -21,24 +20,28 @@ from traffic.imports import (
     histogram,
     max_np,
 )
-from traffic.utils.lane_helper import labels, color_to_train_id_dict
-from traffic.utils.time import Timer
+from traffic.utils.lane_helper import labels
 from traffic.logging import root_logger
+
+color_to_train_id_dict = {label.color: label.trainId for label in labels}
 
 
 class LaneConfig(Config):
     NAME = LANE
     GPU_COUNT = 1
     IMAGES_PER_GPU = 2
-    NUM_CLASSES = 1 + 3  # todo
+    NUM_CLASSES = 1 + len([None for label in labels if label.category not in ["void", "ignored"]])
     IMAGE_MIN_DIM = IMAGE_MAX_DIM = 448
-    RPN_ANCHOR_SCALES = (16, 32, 64, 128, 256)  # anchor side in pixels
+    # max a kép feléig vannak
+    RPN_ANCHOR_SCALES = (16, 32, 64, 128)  # 1:1 anchor side in pixels
     RPN_ANCHOR_RATIOS = [0.25, 0.5, 1, 2, 4]
     # Reduce training ROIs per image because the images are small and have
     # few objects. Aim to allow ROI sampling to pick 33% positive ROIs.
     TRAIN_ROIS_PER_IMAGE = 64
     STEPS_PER_EPOCH = 100
     VALIDATION_STEPS = 50
+    # mekkora dolgokat ismerjen fel
+    #
     MIN_INSTANCE_SIZE = 200
 
 
@@ -85,17 +88,15 @@ class LaneDataset(Dataset):
         return img[tuple(slice(half_delta, half_delta + img.shape[small_i]) if i == big_i else slice(None) for i in range(len(img.shape)))]
 
     @staticmethod
-    def get_resized(img):
-        return resize(img, (LaneConfig.IMAGE_MAX_DIM, LaneConfig.IMAGE_MIN_DIM), anti_aliasing=True) * 255
-
-    @staticmethod
-    def get_nearest_neighbour(img):
-        img = imresize(img, (LaneConfig.IMAGE_MAX_DIM, LaneConfig.IMAGE_MIN_DIM), interp="nearest")
-        return img
+    def get_resized(img, mode: str):
+        if mode == "interpolation":
+            return resize(img, (LaneConfig.IMAGE_MAX_DIM, LaneConfig.IMAGE_MIN_DIM), anti_aliasing=True) * 255
+        elif mode == "nearest":
+            return imresize(img, (LaneConfig.IMAGE_MAX_DIM, LaneConfig.IMAGE_MIN_DIM), interp="nearest")
 
     def load_image(self, image_id):
         img = self.get_square_img(self.img_paths[image_id])
-        return self.get_resized(img)
+        return self.get_resized(img, "interpolation")
 
     def load_mask(self, image_id):
         def get_train_id(a):
@@ -108,7 +109,7 @@ class LaneDataset(Dataset):
         root_logger.debug("image_id={}".format(image_id))
         root_logger.debug("self.mask_paths[image_id]={}".format(self.mask_paths[image_id]))
         original_squared_mask = self.get_square_img(self.mask_paths[image_id])
-        original_squared_resized_mask = self.get_nearest_neighbour(original_squared_mask)
+        original_squared_resized_mask = self.get_resized(original_squared_mask, "nearest")
         root_logger.debug("original_squared_resized_mask.shape={}".format(original_squared_resized_mask.shape))
         # creae a Integer mask instead of RGB
         # also delete unnecessary categories
@@ -152,69 +153,3 @@ class LaneDataset(Dataset):
         root_logger.debug("count_nonzero(component_id_mask)={}".format(count_nonzero(component_id_mask)))
         ret_masks, class_ids = ret_masks.astype(bool_np), array(class_ids, dtype=int32)
         return ret_masks, class_ids
-
-    def draw_shape(self, image, shape, dims, color):
-        """Draws a shape from the given specs."""
-        # Get the center x, y and the size s
-        x, y, s = dims
-        if shape == "square":
-            cv2.rectangle(image, (x - s, y - s), (x + s, y + s), color, -1)
-        elif shape == "circle":
-            cv2.circle(image, (x, y), s, color, -1)
-        elif shape == "triangle":
-            points = np.array(
-                [
-                    [
-                        (x, y - s),
-                        (x - s / math.sin(math.radians(60)), y + s),
-                        (x + s / math.sin(math.radians(60)), y + s),
-                    ]
-                ],
-                dtype=np.int32,
-            )
-            cv2.fillPoly(image, points, color)
-        return image
-
-    def random_shape(self, height, width):
-        """Generates specifications of a random shape that lies within
-        the given height and width boundaries.
-        Returns a tuple of three valus:
-        * The shape name (square, circle, ...)
-        * Shape color: a tuple of 3 values, RGB.
-        * Shape dimensions: A tuple of values that define the shape size
-                            and location. Differs per shape type.
-        """
-        # Shape
-        shape = random.choice(["square", "circle", "triangle"])
-        # Color
-        color = tuple([random.randint(0, 255) for _ in range(3)])
-        # Center x, y
-        buffer = 20
-        y = random.randint(buffer, height - buffer - 1)
-        x = random.randint(buffer, width - buffer - 1)
-        # Size
-        s = random.randint(buffer, height // 4)
-        return shape, color, (x, y, s)
-
-    def random_image(self, height, width):
-        """Creates random specifications of an image with multiple shapes.
-        Returns the background color of the image and a list of shape
-        specifications that can be used to draw the image.
-        """
-        # Pick random background color
-        bg_color = np.array([random.randint(0, 255) for _ in range(3)])
-        # Generate a few random shapes and record their
-        # bounding boxes
-        shapes = []
-        boxes = []
-        N = random.randint(1, 4)
-        for _ in range(N):
-            shape, color, dims = self.random_shape(height, width)
-            shapes.append((shape, color, dims))
-            x, y, s = dims
-            boxes.append([y - s, x - s, y + s, x + s])
-        # Apply non-max suppression wit 0.3 threshold to avoid
-        # shapes covering each other
-        keep_ixs = utils.non_max_suppression(np.array(boxes), np.arange(N), 0.3)
-        shapes = [s for i, s in enumerate(shapes) if i in keep_ixs]
-        return bg_color, shapes
