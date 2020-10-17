@@ -51,7 +51,7 @@ with ci_manager() as (iF, tF, pF, sF):
     tF.delete_after = [rmdirs, [BUILD_PATH, EGG_PATH, DIST_PATH, PYTEST_CACHE_PATH]]
     tF.save = [
         cpdirs,
-        ["/home/gabi/Desktop/save/traffic", [HOST_ROOT_PATH], ["venv"]],
+        ["/home/gabi/Desktop/save/traffic", [HOST_ROOT_PATH], ["venv", "venv3.5"]],
     ]
     tF.create_docs_dir = [mkdirs, [DOCS_PATH]]
     pF.chmod = [HOST_ROOT_PATH, SUDO, CHMOD, ALL_PERMISSION, RECURSIVE, CURR_DIR]

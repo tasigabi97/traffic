@@ -2,9 +2,28 @@ from mrcnn.config import Config
 from mrcnn.utils import Dataset
 from traffic.consts import LANE
 from traffic.consts import CONTAINER_LANE_PATH
-from traffic.imports import listdir, join_path, imread, unique, reshape, zeros, uint8, apply_along_axis, resize, imresize, label, histogram
-from traffic.utils.lane_helper import labels, color2trainId
+from traffic.imports import (
+    listdir,
+    join_path,
+    imread,
+    count_nonzero,
+    unique,
+    array,
+    int32,
+    bool_np,
+    reshape,
+    zeros,
+    uint8,
+    apply_along_axis,
+    resize,
+    imresize,
+    label,
+    histogram,
+    max_np,
+)
+from traffic.utils.lane_helper import labels, color_to_train_id_dict
 from traffic.utils.time import Timer
+from traffic.logging import root_logger
 
 
 class LaneConfig(Config):
@@ -20,13 +39,16 @@ class LaneConfig(Config):
     TRAIN_ROIS_PER_IMAGE = 64
     STEPS_PER_EPOCH = 100
     VALIDATION_STEPS = 50
+    MIN_INSTANCE_SIZE = 200
 
 
 class LaneDataset(Dataset):
     @staticmethod
     def get_lane_paths():
         img_paths, mask_paths = [], []
-        for img_dirname, mask_dirname in zip(["ColorImage_road02"], ["Labels_road02"]):
+        for img_dirname, mask_dirname in zip(
+            ["ColorImage_road02", "ColorImage_road03", "ColorImage_road04"], ["Labels_road02", "Labels_road03", "Labels_road04"]
+        ):
             img_dir, mask_dir = join_path(CONTAINER_LANE_PATH, img_dirname), join_path(CONTAINER_LANE_PATH, mask_dirname)
             img_dir, mask_dir = join_path(img_dir, "ColorImage"), join_path(mask_dir, "Label")
             for record_name in listdir(img_dir):
@@ -76,67 +98,60 @@ class LaneDataset(Dataset):
         return self.get_resized(img)
 
     def load_mask(self, image_id):
-        def get_trainId(a):
-            if a[0] == 0 == a[1] == a[2]:
+        def get_train_id(a):
+            a = tuple(a)
+            # void or noise
+            if a == (0, 0, 0) or a == (255, 255, 255) or a == (0, 153, 153):
                 return 0
-            return color2trainId[tuple(a)]
+            return color_to_train_id_dict[a]
 
-        img = self.get_square_img(self.mask_paths[image_id])
-        img = self.get_nearest_neighbour(img)
-        img = apply_along_axis(get_trainId, 2, img)
-        trainId_img = img.copy()
-        component_img, num = label(img, background=0, return_num=True, connectivity=2)
-        hist, _ = histogram(component_img, bins=num)
-
-        return trainId_img
-
-        def count_area(a):
-            if a[0] == 0 == a[1] == a[2]:
-                return 0
-
-        img = apply_along_axis(count_area, 2, img)
-
-        print(num)
-
-        return img
-        # todo
-
-        original_mask = self.get_square_img(self.mask_paths[image_id])
-
-        with Timer("d"):
-            id_mask = apply_along_axis(get_trainId, 2, original_mask)
-        with Timer("lambda"):
-            id_mask = apply_along_axis(lambda a: color2trainId[tuple(a)], 2, original_mask)
-
-        print(id_mask.shape)
-        print(id_mask)
-
-        id_mask = zeros(original_mask.shape[0:2], dtype=uint8)
-        for i in range(original_mask.shape[0]):
-            for j in range(original_mask.shape[1]):
-                id_mask[i, j] = color2trainId[tuple(original_mask[i, j, :])]
-
-        print(original_mask.shape)
-        print(id_mask.shape)
-        print(id_mask)
-        input()
-
-        return original_mask
-
-        info = self.image_info[image_id]
-        shapes = info["shapes"]
-        count = len(shapes)
-        mask = np.zeros([info["height"], info["width"], count], dtype=np.uint8)
-        for i, (shape, _, dims) in enumerate(info["shapes"]):
-            mask[:, :, i : i + 1] = self.draw_shape(mask[:, :, i : i + 1].copy(), shape, dims, 1)
-        # Handle occlusions
-        occlusion = np.logical_not(mask[:, :, -1]).astype(np.uint8)
-        for i in range(count - 2, -1, -1):
-            mask[:, :, i] = mask[:, :, i] * occlusion
-            occlusion = np.logical_and(occlusion, np.logical_not(mask[:, :, i]))
-        # Map class names to class IDs.
-        class_ids = np.array([self.class_names.index(s[0]) for s in shapes])
-        return mask.astype(np.bool), class_ids.astype(np.int32)
+        root_logger.debug("image_id={}".format(image_id))
+        root_logger.debug("self.mask_paths[image_id]={}".format(self.mask_paths[image_id]))
+        original_squared_mask = self.get_square_img(self.mask_paths[image_id])
+        original_squared_resized_mask = self.get_nearest_neighbour(original_squared_mask)
+        root_logger.debug("original_squared_resized_mask.shape={}".format(original_squared_resized_mask.shape))
+        # creae a Integer mask instead of RGB
+        # also delete unnecessary categories
+        train_id_mask = apply_along_axis(get_train_id, 2, original_squared_resized_mask)
+        # create Boolean object masks instead of category masks
+        component_id_mask, max_component_id = label(train_id_mask.copy(), background=0, return_num=True, connectivity=2)
+        root_logger.debug("max_component_id={}".format(max_component_id))
+        root_logger.debug("max_np(component_id_mask)={}".format(max_np(component_id_mask)))
+        # delete little objecs because we dont want too much Boolean masks
+        component_sizes, _ = histogram(component_id_mask, bins=(max_component_id + 1))
+        root_logger.debug("component_sizes={}".format(component_sizes))
+        root_logger.debug("len(component_sizes)={}".format(len(component_sizes)))
+        root_logger.debug("sum(component_sizes)={}".format(sum(component_sizes)))
+        root_logger.debug("train_id_mask.shape[0]*train_id_mask.shape[1]={}".format(train_id_mask.shape[0] * train_id_mask.shape[1]))
+        for i in range(train_id_mask.shape[0]):
+            for j in range(train_id_mask.shape[1]):
+                component_id = component_id_mask[i][j]
+                component_size = component_sizes[component_id]
+                if component_size < LaneConfig.MIN_INSTANCE_SIZE:
+                    train_id_mask[i][j] = 0
+        component_id_mask, max_component_id = label(train_id_mask, background=0, return_num=True, connectivity=2)
+        root_logger.debug("max_component_id={}".format(max_component_id))
+        root_logger.debug("max_np(component_id_mask)={}".format(max_np(component_id_mask)))
+        root_logger.debug("unique(train_id_mask)={}".format(unique(train_id_mask)))
+        # background cavity is not an object so we need max_component_id * Boolean mask
+        # get component ids which need masks
+        ret_masks = zeros((component_id_mask.shape[0], component_id_mask.shape[1], max_component_id), dtype=uint8)
+        class_ids = [None for _ in range(max_component_id)]
+        for i in range(train_id_mask.shape[0]):
+            for j in range(train_id_mask.shape[1]):
+                component_id = component_id_mask[i][j]
+                if component_id == 0:
+                    continue
+                ret_masks[i][j][component_id - 1] = 1
+                train_id = train_id_mask[i][j]
+                class_ids[component_id - 1] = train_id
+        root_logger.debug("class_ids={}".format(class_ids))
+        root_logger.debug("ret_masks.shape={}".format(ret_masks.shape))
+        root_logger.debug("count_nonzero(ret_masks)={}".format(count_nonzero(ret_masks)))
+        root_logger.debug("count_nonzero(train_id_mask)={}".format(count_nonzero(train_id_mask)))
+        root_logger.debug("count_nonzero(component_id_mask)={}".format(count_nonzero(component_id_mask)))
+        ret_masks, class_ids = ret_masks.astype(bool_np), array(class_ids, dtype=int32)
+        return ret_masks, class_ids
 
     def draw_shape(self, image, shape, dims, color):
         """Draws a shape from the given specs."""

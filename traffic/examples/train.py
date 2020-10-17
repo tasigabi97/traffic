@@ -1,7 +1,7 @@
 def main():
     from traffic.consts import CONTAINER_LANE_PATH
     from traffic.imports import subplots, listdir, join_path
-    from mrcnn.visualize import display_images
+    from mrcnn.visualize import display_images, display_top_masks
 
     from traffic.utils.lane import LaneConfig, LaneDataset
 
@@ -12,14 +12,11 @@ def main():
     config = LaneConfig()
     config.display()
     dataset_train = LaneDataset()
-    img1 = dataset_train.load_image(1000)
-    img2 = dataset_train.load_image(2000)
-    mask1 = dataset_train.load_mask(1000)
-    mask2 = dataset_train.load_mask(2000)
-    print(img1.shape)
-    print(mask1.shape)
-
-    display_images([img1, img2, mask1, mask2])
+    image_ids = [1000, 2000]
+    for image_id in image_ids:
+        image = dataset_train.load_image(image_id)
+        mask, class_ids = dataset_train.load_mask(image_id)
+        display_top_masks(image, mask, class_ids, dataset_train.class_names)
 
 
 if __name__ == "__main__":
