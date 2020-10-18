@@ -41,8 +41,8 @@ class LaneConfig(Config):
     STEPS_PER_EPOCH = 100
     VALIDATION_STEPS = 50
     # mekkora dolgokat ismerjen fel
-    #
-    MIN_INSTANCE_SIZE = 200
+    MIN_INSTANCE_SIZE = 75
+    MAX_GT_INSTANCES = 16
 
 
 class LaneDataset(Dataset):
@@ -124,11 +124,19 @@ class LaneDataset(Dataset):
         root_logger.debug("len(component_sizes)={}".format(len(component_sizes)))
         root_logger.debug("sum(component_sizes)={}".format(sum(component_sizes)))
         root_logger.debug("train_id_mask.shape[0]*train_id_mask.shape[1]={}".format(train_id_mask.shape[0] * train_id_mask.shape[1]))
+        min_instance_size = LaneConfig.MIN_INSTANCE_SIZE
+        # delete smallest masks if there are too much
+        if max_component_id > LaneConfig.MAX_GT_INSTANCES:
+            biggest_component_sizes_wihout_bg = sorted(list(component_sizes))[-(1 + LaneConfig.MAX_GT_INSTANCES) : -1]
+            root_logger.debug("len(biggest_component_sizes_wihout_bg)={}".format(len(biggest_component_sizes_wihout_bg)))
+            root_logger.debug("LaneConfig.MAX_GT_INSTANCES)={}".format(LaneConfig.MAX_GT_INSTANCES))
+            min_instance_size = biggest_component_sizes_wihout_bg[0]
+            root_logger.debug("min_instance_size={}".format(min_instance_size))
         for i in range(train_id_mask.shape[0]):
             for j in range(train_id_mask.shape[1]):
                 component_id = component_id_mask[i][j]
                 component_size = component_sizes[component_id]
-                if component_size < LaneConfig.MIN_INSTANCE_SIZE:
+                if component_size < min_instance_size:
                     train_id_mask[i][j] = 0
         component_id_mask, max_component_id = label(train_id_mask, background=0, return_num=True, connectivity=2)
         root_logger.debug("max_component_id={}".format(max_component_id))
