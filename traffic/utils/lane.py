@@ -19,9 +19,11 @@ from traffic.imports import (
     label,
     histogram,
     max_np,
+    SequenceType
 )
 from traffic.utils.lane_helper import labels
 from traffic.logging import root_logger
+
 
 color_to_train_id_dict = {label.color: label.trainId for label in labels}
 
@@ -29,17 +31,17 @@ color_to_train_id_dict = {label.color: label.trainId for label in labels}
 class LaneConfig(Config):
     NAME = LANE
     GPU_COUNT = 1
-    IMAGES_PER_GPU = 2
+    IMAGES_PER_GPU = 1
     NUM_CLASSES = 1 + len([None for label in labels if label.category not in ["void", "ignored"]])
     IMAGE_MIN_DIM = IMAGE_MAX_DIM = 448
     # max a kép feléig vannak
-    RPN_ANCHOR_SCALES = (16, 32, 64, 128)  # 1:1 anchor side in pixels
-    RPN_ANCHOR_RATIOS = [0.25, 0.5, 1, 2, 4]
+    RPN_ANCHOR_SCALES = (8,16,32, 64) # 1:1 anchor side in pixels
+    RPN_ANCHOR_RATIOS = [0.5, 1, 2]
     # Reduce training ROIs per image because the images are small and have
     # few objects. Aim to allow ROI sampling to pick 33% positive ROIs.
     TRAIN_ROIS_PER_IMAGE = 64
     STEPS_PER_EPOCH = 100
-    VALIDATION_STEPS = 50
+    VALIDATION_STEPS = 1
     # mekkora dolgokat ismerjen fel
     MIN_INSTANCE_SIZE = 75
     MAX_GT_INSTANCES = 16
@@ -98,6 +100,26 @@ class LaneDataset(Dataset):
         img = self.get_square_img(self.img_paths[image_id])
         return self.get_resized(img, "interpolation")
 
+    @staticmethod
+    def get_min_instance_size(component_sizes:SequenceType[int]):
+        sorted_component_sizes_wihout_bg = sorted(list(component_sizes))[:-1]
+        root_logger.debug("sorted_component_sizes_wihout_bg={}".format(sorted_component_sizes_wihout_bg))
+        max_component_id=len(sorted_component_sizes_wihout_bg)
+        root_logger.debug("max_component_id={}".format(max_component_id))
+        max_instance_number=LaneConfig.MAX_GT_INSTANCES
+        root_logger.debug("max_instance_number)={}".format(max_instance_number))
+        min_instance_size = 0
+        # delete smallest masks if there are too much
+        if max_component_id > max_instance_number:
+            biggest_component_sizes_wihout_bg = sorted_component_sizes_wihout_bg[-(1 + max_instance_number):]
+            root_logger.debug("biggest_component_sizes_wihout_bg={}".format(biggest_component_sizes_wihout_bg))
+            root_logger.debug(
+                "len(biggest_component_sizes_wihout_bg)={}".format(len(biggest_component_sizes_wihout_bg)))
+            min_instance_size = biggest_component_sizes_wihout_bg[0]+1
+        min_instance_size=LaneConfig.MIN_INSTANCE_SIZE if LaneConfig.MIN_INSTANCE_SIZE > min_instance_size else min_instance_size
+        root_logger.debug("min_instance_size={}".format(min_instance_size))
+        return min_instance_size
+
     def load_mask(self, image_id):
         def get_train_id(a):
             a = tuple(a)
@@ -124,14 +146,7 @@ class LaneDataset(Dataset):
         root_logger.debug("len(component_sizes)={}".format(len(component_sizes)))
         root_logger.debug("sum(component_sizes)={}".format(sum(component_sizes)))
         root_logger.debug("train_id_mask.shape[0]*train_id_mask.shape[1]={}".format(train_id_mask.shape[0] * train_id_mask.shape[1]))
-        min_instance_size = LaneConfig.MIN_INSTANCE_SIZE
-        # delete smallest masks if there are too much
-        if max_component_id > LaneConfig.MAX_GT_INSTANCES:
-            biggest_component_sizes_wihout_bg = sorted(list(component_sizes))[-(1 + LaneConfig.MAX_GT_INSTANCES) : -1]
-            root_logger.debug("len(biggest_component_sizes_wihout_bg)={}".format(len(biggest_component_sizes_wihout_bg)))
-            root_logger.debug("LaneConfig.MAX_GT_INSTANCES)={}".format(LaneConfig.MAX_GT_INSTANCES))
-            min_instance_size = biggest_component_sizes_wihout_bg[0]
-            root_logger.debug("min_instance_size={}".format(min_instance_size))
+        min_instance_size=self.get_min_instance_size(component_sizes)
         for i in range(train_id_mask.shape[0]):
             for j in range(train_id_mask.shape[1]):
                 component_id = component_id_mask[i][j]
@@ -160,4 +175,5 @@ class LaneDataset(Dataset):
         root_logger.debug("count_nonzero(train_id_mask)={}".format(count_nonzero(train_id_mask)))
         root_logger.debug("count_nonzero(component_id_mask)={}".format(count_nonzero(component_id_mask)))
         ret_masks, class_ids = ret_masks.astype(bool_np), array(class_ids, dtype=int32)
+        root_logger.info("class_ids={}".format(class_ids))
         return ret_masks, class_ids

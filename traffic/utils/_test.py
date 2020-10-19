@@ -3,11 +3,11 @@ from traffic.utils import get_ssid, webcam_server, Singleton
 from traffic.consts import SSID_MONOR, SSID_VODAFONE, DROIDCAM, SPACE
 from traffic.imports import patch, check_output, Iterable_abc, Iterable_type
 from traffic.logging import root_logger
+from traffic.utils.lane import LaneDataset,LaneConfig
 
 
 def setup_function(function):
     Singleton._instances = dict()
-
 
 def is_droidcam_running():
     out = check_output(["ps", "-o", "command"]).decode("ascii")
@@ -15,6 +15,37 @@ def is_droidcam_running():
     root_logger.info(out)
     root_logger.info(ret)
     return ret
+
+@name(LaneDataset.get_min_instance_size, "1", globals())
+@patch("traffic.utils.lane.LaneConfig.MIN_INSTANCE_SIZE",1)
+@patch("traffic.utils.lane.LaneConfig.MAX_GT_INSTANCES",1)
+def _():
+    assert LaneDataset.get_min_instance_size([1000,1,2,3,4]) == 4
+
+@name(LaneDataset.get_min_instance_size, "2", globals())
+@patch("traffic.utils.lane.LaneConfig.MIN_INSTANCE_SIZE",5)
+@patch("traffic.utils.lane.LaneConfig.MAX_GT_INSTANCES",1)
+def _():
+    assert LaneDataset.get_min_instance_size([1000,1,2,3,4]) == 5
+
+@name(LaneDataset.get_min_instance_size, "3", globals())
+@patch("traffic.utils.lane.LaneConfig.MIN_INSTANCE_SIZE",1)
+@patch("traffic.utils.lane.LaneConfig.MAX_GT_INSTANCES",4)
+def _():
+    assert LaneDataset.get_min_instance_size([1000,1,2,3,4]) == 1
+
+@name(LaneDataset.get_min_instance_size, "4", globals())
+@patch("traffic.utils.lane.LaneConfig.MIN_INSTANCE_SIZE",1)
+@patch("traffic.utils.lane.LaneConfig.MAX_GT_INSTANCES",2)
+def _():
+    assert LaneDataset.get_min_instance_size([1000,1,2,3,4]) == 3
+
+@name(LaneDataset.get_min_instance_size, "5", globals())
+@patch("traffic.utils.lane.LaneConfig.MIN_INSTANCE_SIZE",1)
+@patch("traffic.utils.lane.LaneConfig.MAX_GT_INSTANCES",1)
+def _():
+    assert LaneDataset.get_min_instance_size([1000,1,2,3,3]) == 4
+
 
 
 @name(Iterable_abc, "abc", globals())

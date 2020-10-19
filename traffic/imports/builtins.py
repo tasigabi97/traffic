@@ -13,6 +13,7 @@ exists = os.path.exists
 Formatter = logging.Formatter
 getcwd = os.getcwd
 getLogger = logging.getLogger
+INFO = logging.INFO
 Iterable_abc = collections.abc.Iterable
 Iterable_type = typing.Iterable
 join_path = os.path.join

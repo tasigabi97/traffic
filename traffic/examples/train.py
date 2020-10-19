@@ -4,20 +4,26 @@ def main():
     from mrcnn.model import MaskRCNN, load_image_gt, log, mold_image
     from mrcnn.utils import download_trained_weights, compute_ap
     from traffic.utils.lane import LaneConfig, LaneDataset
-
+    from traffic.logging import root_logger,INFO
+    root_logger.setLevel(INFO)
     MODEL_DIR = "/traffic/mrcnn/logs"
-    COCO_MODEL_PATH = "/traffic/mrcnn/mask_rcnn_coco.h5"
-    if not exists(COCO_MODEL_PATH):
-        download_trained_weights(COCO_MODEL_PATH)
+    model_path = "/traffic/mrcnn/mask_rcnn_coco.h5"
+    if not exists(model_path):
+        download_trained_weights(model_path)
     config = LaneConfig()
     config.display()
     dataset_train = LaneDataset()
     dataset_val = dataset_train  # todo
-    model = MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
-    model.load_weights(COCO_MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
-    model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=1, layers="heads")
-    model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=2, layers="all")
-
+    if True:
+        model = MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
+        if input("Press a if download last") == "a":
+            model_path = model.find_last()
+            print("Loading weights from ", model_path)
+        model.load_weights(model_path, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
+        model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=100, layers="heads")
+        input("ALL")
+        model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=200, layers="all")
+#se todo
     class InferenceConfig(LaneConfig):
         IMAGES_PER_GPU = 1
 
@@ -36,6 +42,7 @@ def main():
     log("gt_mask", gt_mask)
 
     display_instances(original_image, gt_bbox, gt_mask, gt_class_id, dataset_train.class_names, figsize=(8, 8))
+    input(1)
     results = model.detect([original_image], verbose=1)
 
     r = results[0]
@@ -44,7 +51,9 @@ def main():
         _, ax = subplots(rows, cols, figsize=(size * cols, size * rows))
         return ax
 
-    display_instances(original_image, r["rois"], r["masks"], r["class_ids"], dataset_val.class_names, r["scores"], ax=get_ax())
+    display_instances(original_image, r["rois"], r["masks"], r["class_ids"], dataset_val.class_names, r["scores"], figsize=(8, 8))
+    input(2)
+
     image_ids = choice_np(dataset_val.image_ids, 10)
     APs = []
     for image_id in image_ids:

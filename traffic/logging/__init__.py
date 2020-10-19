@@ -1,6 +1,7 @@
 from traffic.imports import (
     getLogger,
     DEBUG,
+    INFO,
     StreamHandler,
     Formatter,
     LogRecord,
