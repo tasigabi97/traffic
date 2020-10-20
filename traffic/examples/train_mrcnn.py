@@ -3,27 +3,44 @@ def main():
     from mrcnn.visualize import display_images, display_top_masks, display_instances
     from mrcnn.model import MaskRCNN, load_image_gt, log, mold_image
     from mrcnn.utils import download_trained_weights, compute_ap
-    from traffic.utils.lane import LaneConfig, LaneDataset
-    from traffic.logging import root_logger,INFO
+    from traffic.utils.lane_mrcnn import LaneConfig, LaneDataset
+    from traffic.logging import root_logger, INFO
+
     root_logger.setLevel(INFO)
     MODEL_DIR = "/traffic/mrcnn/logs"
-    model_path = "/traffic/mrcnn/mask_rcnn_coco.h5"
-    if not exists(model_path):
-        download_trained_weights(model_path)
     config = LaneConfig()
     config.display()
     dataset_train = LaneDataset()
     dataset_val = dataset_train  # todo
-    if True:
+    if input("Press 'a' if show data") == "a":
+        for i, path in enumerate(dataset_train.mask_paths):
+            # masks, class_ids = dataset_train.load_mask(i)
+            # image = dataset_train.load_image(i)
+            # display_top_masks(image, masks, class_ids, dataset_train.class_names)
+            original_image, image_meta, gt_class_id, gt_bbox, gt_mask = load_image_gt(dataset_val, config, i, use_mini_mask=False)
+            log("original_image", original_image)
+            log("image_meta", image_meta)
+            log("gt_class_id", gt_class_id)
+            log("gt_bbox", gt_bbox)
+            log("gt_mask", gt_mask)
+            display_instances(original_image, gt_bbox, gt_mask, gt_class_id, dataset_train.class_names, show_mask=False, figsize=(8, 8))
+
+    if input("Press 'a' if train") == "a":
         model = MaskRCNN(mode="training", config=config, model_dir=MODEL_DIR)
-        if input("Press a if download last") == "a":
+        if input("Press 'a' if load last") == "a":
             model_path = model.find_last()
             print("Loading weights from ", model_path)
-        model.load_weights(model_path, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
-        model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=100, layers="heads")
-        input("ALL")
-        model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=200, layers="all")
-#se todo
+            model.load_weights(model_path, by_name=True)
+        else:
+            model_path = "/traffic/mrcnn/mask_rcnn_coco.h5"
+            if not exists(model_path):
+                download_trained_weights(model_path)
+            model.load_weights(model_path, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
+        if input("Press 'a' if train heads") == "a":
+            model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE, epochs=36, layers="heads")
+        if input("Press 'a' if train all") == "a":
+            model.train(dataset_train, dataset_val, learning_rate=config.LEARNING_RATE / 10, epochs=40, layers="all")
+    # se todo
     class InferenceConfig(LaneConfig):
         IMAGES_PER_GPU = 1
 
@@ -42,7 +59,6 @@ def main():
     log("gt_mask", gt_mask)
 
     display_instances(original_image, gt_bbox, gt_mask, gt_class_id, dataset_train.class_names, figsize=(8, 8))
-    input(1)
     results = model.detect([original_image], verbose=1)
 
     r = results[0]
@@ -69,12 +85,6 @@ def main():
 
     print("mAP: ", mean_np(APs))
     input("END")
-
-    model.load_weights(model_path, by_name=True)
-    for i, path in enumerate(dataset_train.mask_paths):
-        masks, class_ids = dataset_train.load_mask(i)
-        image = dataset_train.load_image(i)
-        display_top_masks(image, masks, class_ids, dataset_train.class_names)
 
 
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
 if __name__ == "__main__":
-    from traffic.examples.train import main as train_main
-
-    train_main()
-    input()
     from traffic.examples.camera_with_mrcnn import main as camera_with_mrcnn_main
 
     camera_with_mrcnn_main()
+    input()
+    from traffic.examples.train_mrcnn import main as train_mrcnn_main
+
+    train_mrcnn_main()
     input()
 
     from traffic.examples.camera import main as camera_main
