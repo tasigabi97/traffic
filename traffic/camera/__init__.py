@@ -6,7 +6,7 @@ from traffic.imports import (
     contextmanager,
     ndarray,
     cycle,
-    imshow,
+    imshow_cv2,
     destroyAllWindows,
 )
 from traffic.logging import root_logger
@@ -105,7 +105,7 @@ def choose_camera(code: int = None) -> Camera:
         g.wait_keys = [camera.id for camera in cameras]
         root_logger.info("Waitkeys={}".format(g.wait_keys))
         for camera in cycle(cameras):
-            imshow("{}-> ({})".format(choose_camera.__name__, camera.name), camera.img)
+            imshow_cv2("{}-> ({})".format(choose_camera.__name__, camera.name), camera.img)
             key = g.pressed_key
             if key is not None:
                 destroyAllWindows()

@@ -4,6 +4,7 @@ AUTO_REMOVE = "--rm"
 BASH = "bash"
 BLACK = "black"
 BUILDERNAME = "-M"
+CAMERA_ROWS, CAMERA_COLS = 480, 640
 CHMOD = "chmod"
 COMMIT = "commit"
 CONTAINER = "container"

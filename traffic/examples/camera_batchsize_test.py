@@ -1,5 +1,5 @@
 def main():
-    from traffic.imports import listdir, imread, join_path, choice, exists, subplots, show, ion, sleep
+    from traffic.imports import listdir, imread_skimage, join_path, choice, exists, subplots, show, ion, sleep
     from traffic.utils import set_axes, Timer
     from mrcnn.model import MaskRCNN
     from mrcnn.utils import download_trained_weights
@@ -118,7 +118,7 @@ def main():
         model = MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=config)
         model.load_weights(COCO_MODEL_PATH, by_name=True)
         for _ in range(2):
-            images = [imread(join_path(IMAGE_DIR, choice(listdir(IMAGE_DIR)))) for _ in range(batchsize)]
+            images = [imread_skimage(join_path(IMAGE_DIR, choice(listdir(IMAGE_DIR)))) for _ in range(batchsize)]
             with timer:
                 result = model.detect(images, verbose=0)[0]
             set_axes(

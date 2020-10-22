@@ -5,17 +5,17 @@ from traffic.consts import CONTAINER_LANE_PATH
 from traffic.imports import (
     listdir,
     join_path,
-    imread,
+    imread_skimage,
     count_nonzero,
     unique,
-    array,
+    array_np,
     int32,
     bool_np,
     zeros,
     uint8,
     apply_along_axis,
-    resize,
-    imresize,
+    resize_skimage,
+    imresize_scipy,
     label,
     histogram,
     max_np,
@@ -87,7 +87,7 @@ class LaneDataset(Dataset):
     @staticmethod
     def get_square_img(path):
         root_logger.info("path={}".format(path))
-        img = imread(path)
+        img = imread_skimage(path)
         img = img[..., :3] if img.shape[-1] == 4 else img
         big_i, small_i = (0, 1) if img.shape[0] > img.shape[1] else (1, 0)
         # kivágás középről
@@ -97,11 +97,11 @@ class LaneDataset(Dataset):
     @staticmethod
     def get_resized(img, mode: str):
         if mode == "interpolation":
-            img = resize(img, (LaneConfig.IMAGE_MAX_DIM, LaneConfig.IMAGE_MIN_DIM), anti_aliasing=False) * 255
-            img = array(img, dtype=uint8)
+            img = resize_skimage(img, (LaneConfig.IMAGE_MAX_DIM, LaneConfig.IMAGE_MIN_DIM), anti_aliasing=False) * 255
+            img = array_np(img, dtype=uint8)
             return img
         elif mode == "nearest":
-            return imresize(img, (LaneConfig.IMAGE_MAX_DIM, LaneConfig.IMAGE_MIN_DIM), interp="nearest")
+            return imresize_scipy(img, (LaneConfig.IMAGE_MAX_DIM, LaneConfig.IMAGE_MIN_DIM), interp="nearest")
 
     def load_image(self, image_id):
         img = self.get_square_img(self.img_paths[image_id])
@@ -180,6 +180,6 @@ class LaneDataset(Dataset):
         root_logger.debug("count_nonzero(ret_masks)={}".format(count_nonzero(ret_masks)))
         root_logger.debug("count_nonzero(train_id_mask)={}".format(count_nonzero(train_id_mask)))
         root_logger.debug("count_nonzero(component_id_mask)={}".format(count_nonzero(component_id_mask)))
-        ret_masks, class_ids = ret_masks.astype(bool_np), array(class_ids, dtype=int32)
+        ret_masks, class_ids = ret_masks.astype(bool_np), array_np(class_ids, dtype=int32)
         root_logger.info("class_ids={}".format(class_ids))
         return ret_masks, class_ids

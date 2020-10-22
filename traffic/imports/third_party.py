@@ -1,12 +1,13 @@
 import cv2, imageio, numpy, pytest, scipy, skimage, termcolor
 from matplotlib.pyplot import subplots, show, ion, cla
+from matplotlib.pyplot import imshow as imshow_mat
 from matplotlib.patches import Rectangle, Polygon
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
 any_np = numpy.any
 apply_along_axis = numpy.apply_along_axis
-array = numpy.array
+array_np = numpy.array
 Array_imageio = imageio.core.util.Array
 Axes = Axes
 bool_np = numpy.bool
@@ -22,13 +23,15 @@ expand_dims = numpy.expand_dims
 Figure = Figure
 find_contours = skimage.measure.find_contours
 fliplr = numpy.fliplr
+float64 = numpy.float64
 max_np = numpy.max
 mean_np = numpy.mean
 ndarray = numpy.ndarray
 histogram = numpy.histogram
-imread = skimage.io.imread
-imresize = scipy.misc.imresize
-imshow = cv2.imshow
+imread_skimage = skimage.io.imread
+imresize_scipy = scipy.misc.imresize
+imshow_cv2 = cv2.imshow
+imshow_mat = imshow_mat
 int32 = numpy.int32
 ion = ion
 label = skimage.measure.label
@@ -36,7 +39,8 @@ Polygon = Polygon
 Rectangle = Rectangle
 raises = pytest.raises
 reshape = numpy.reshape
-resize = skimage.transform.resize
+rescale_skimage = skimage.transform.rescale
+resize_skimage = skimage.transform.resize
 show = show
 subplots = subplots
 uint8 = numpy.uint8

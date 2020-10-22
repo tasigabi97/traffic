@@ -1,6 +1,6 @@
 def main():
     from traffic.camera import choose_camera
-    from traffic.imports import listdir, imread, join_path, choice, exists, subplots, show, ion, sleep
+    from traffic.imports import listdir, imread_skimage, join_path, choice, exists, subplots, show, ion, sleep
     from traffic.utils import set_axes, Timer
     from mrcnn.model import MaskRCNN
     from mrcnn.utils import download_trained_weights

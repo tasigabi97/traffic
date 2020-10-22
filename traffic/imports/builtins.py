@@ -26,6 +26,7 @@ normpath = os.path.normpath
 patch = unittest.mock.patch
 perf_counter = time.perf_counter
 Popen = subprocess.Popen
+randrange = random.randrange
 realpath = os.path.realpath
 SequenceType = typing.Sequence
 sleep = time.sleep
