@@ -173,4 +173,19 @@ train_DB, val_DB, test_DB = LaneDB._get_train_val_test_DB()
 
 
 class Unet(Singleton):
-    ...
+    def __init__(self, batch_size: int):
+        self.batch_size = batch_size
+        self.category_num = len(CATEGORIES)
+        plot_model_ke(self.model, show_shapes=True, to_file="/traffic/1.model.png")
+
+    @property  # proxy
+    def model(self) -> Model_ke:
+        ATTR_NAME = PRIVATE + Unet.model.fget.__name__
+        if hasattr(self, ATTR_NAME):
+            return getattr(self, ATTR_NAME)
+        input_l = Input_ke(shape=(CAMERA_ROWS, CAMERA_COLS, 1))
+        conv_1 = Conv2D_ke(filters=self.category_num, kernel_size=3, activation="relu")(input_l)
+        output_l = conv_1
+        model = Model_ke(input_l, output_l)
+        setattr(self, ATTR_NAME, model)
+        return model

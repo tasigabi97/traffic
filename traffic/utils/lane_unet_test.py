@@ -6,6 +6,25 @@ EXAMPLE_MASK_PATH = "/traffic/lane/Labels_road02/Label/Record028/Camera 5/170927
 EXAMPLE_IMG_PATH = "/traffic/lane/ColorImage_road02/ColorImage/Record028/Camera 5/170927_071400339_Camera_5.jpg"
 
 
+def setup_function(function):
+    Singleton._instances = dict()
+
+
+@name(Unet.model.fget, "proxy", globals())
+def _():
+    u = Unet(1)
+    u._model = 1
+    model = u.model
+    assert model == 1
+
+
+@name(Unet.model.fget, "1", globals())
+def _():
+    u = Unet(1)
+    model = u.model
+    assert type(model) is Model_ke
+
+
 @name(Color, "1", globals())
 def _():
     assert len(Color.colors) == 38

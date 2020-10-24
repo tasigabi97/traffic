@@ -1,4 +1,4 @@
-import cv2, imageio, numpy, pytest, scipy, skimage, termcolor
+import cv2, imageio, numpy, pytest, scipy, skimage, termcolor, keras
 from matplotlib.pyplot import subplots, show, ion, cla
 from matplotlib.pyplot import imshow as imshow_mat
 from matplotlib.patches import Rectangle, Polygon
@@ -17,6 +17,7 @@ cla = cla
 colored = termcolor.colored
 COLOR_RGB2LUV = cv2.COLOR_RGB2LUV
 COLOR_RGB2GRAY = cv2.COLOR_RGB2GRAY
+Conv2D_ke = keras.layers.Conv2D
 count_nonzero = numpy.count_nonzero
 cvtColor = cv2.cvtColor
 destroyAllWindows = cv2.destroyAllWindows
@@ -27,15 +28,18 @@ fliplr = numpy.fliplr
 float64 = numpy.float64
 max_np = numpy.max
 mean_np = numpy.mean
+Model_ke = keras.models.Model
 ndarray = numpy.ndarray
 histogram = numpy.histogram
 imread_skimage = skimage.io.imread
 imresize_scipy = scipy.misc.imresize
 imshow_cv2 = cv2.imshow
 imshow_mat = imshow_mat
+Input_ke = keras.Input
 int32 = numpy.int32
 ion = ion
 label = skimage.measure.label
+plot_model_ke = keras.utils.plot_model
 Polygon = Polygon
 Rectangle = Rectangle
 raises = pytest.raises
