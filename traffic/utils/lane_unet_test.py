@@ -6,6 +6,13 @@ EXAMPLE_MASK_PATH = "/traffic/lane/Labels_road02/Label/Record028/Camera 5/170927
 EXAMPLE_IMG_PATH = "/traffic/lane/ColorImage_road02/ColorImage/Record028/Camera 5/170927_071400339_Camera_5.jpg"
 
 
+@name(Color, "1", globals())
+def _():
+    assert len(Color.colors) == 38
+    assert len({color.color for color in Color.colors}) == 38
+    assert len({color.name for color in Color.colors}) == 38
+
+
 @name(Category.__init__, "1", globals())
 def _():
     cat = Category("alma", 1, (1, 1, 1), (2, 2, 2))
@@ -20,13 +27,6 @@ def _():
     assert len(cat.colors) == 3 and (3, 3, 3) in cat.colors
 
 
-@name(Category.is_me, "1", globals())
-def _():
-    cat = Category("alma", 1, (1, 1, 1), (2, 2, 2))
-    assert cat.is_me((1, 1, 1))
-    assert not cat.is_me((0, 0, 0))
-
-
 @name(Categories.__len__, "1", globals())
 def _():
     assert len(CATEGORIES) == 36 == len({category.id for category in CATEGORIES._categories})
@@ -38,7 +38,7 @@ def _():
         CATEGORIES["void"]
     with raises(ValueError):
         CATEGORIES[37]
-    with raises(ValueError):
+    with raises(TypeError):
         CATEGORIES[(0, 0, 1)]
     with raises(TypeError):
         CATEGORIES[[]]
@@ -46,8 +46,7 @@ def _():
 
 @name(Categories.__getitem__, "ret", globals())
 def _():
-    assert CATEGORIES[(70, 130, 180)].colors == {(70, 130, 180)}
-    assert CATEGORIES["Background"] is CATEGORIES[0] is CATEGORIES[(0, 0, 0)] is CATEGORIES[(255, 255, 255)] is CATEGORIES[(0, 153, 153)]
+    assert CATEGORIES["Background"] is CATEGORIES[0]
     assert len(CATEGORIES["Background"].colors) == 3
 
 
@@ -74,16 +73,16 @@ def _(mock_randrange):
     assert id == 0
 
 
-@name(LaneDB._random_example_paths.fget, "1", globals())
+@name(LaneDB._get_example_paths, "1", globals())
 def _():
-    img_path, mask_path = train_DB._random_example_paths
+    img_path, mask_path = train_DB._get_example_paths(0)
     assert img_path in train_DB._img_paths and mask_path in train_DB._mask_paths
     assert train_DB._img_paths.index(img_path) == train_DB._mask_paths.index(mask_path)
 
 
-@name(LaneDB.random_example.fget, "1", globals())
+@name(LaneDB._get_example, "1", globals())
 def _():
-    img, mask = train_DB.random_example
+    img, mask = train_DB._get_example(0)
     assert type(img) is ndarray and type(mask) is ndarray
     assert img.dtype.name == mask.dtype.name == "uint8"
     assert img.shape == mask.shape == (2710, 3384, 3)
@@ -91,9 +90,9 @@ def _():
     assert mask.max() <= 255 and mask.min() >= 0 and mask.mean() > 1
 
 
-@name(LaneDB.random_small_example.fget, "1", globals())
+@name(LaneDB._get_small_example, "1", globals())
 def _():
-    img, mask = train_DB.random_small_example
+    img, mask = train_DB._get_small_example(0)
     assert type(img) is ndarray and type(mask) is ndarray
     assert img.shape == mask.shape == (513, 640, 3)
     assert img.max() <= 255 and img.min() >= 0 and img.mean() > 1
@@ -101,9 +100,9 @@ def _():
     assert img.dtype.name == mask.dtype.name == "uint8"
 
 
-@name(LaneDB.random_small_cropped_example.fget, "1", globals())
+@name(LaneDB._get_small_cropped_example, "1", globals())
 def _():
-    img, mask = train_DB.random_small_cropped_example
+    img, mask = train_DB._get_small_cropped_example(0)
     assert type(img) is ndarray and type(mask) is ndarray
     assert img.shape == mask.shape == (480, 640, 3)
     assert img.max() <= 255 and img.min() >= 0 and img.mean() > 1
@@ -111,9 +110,9 @@ def _():
     assert img.dtype.name == mask.dtype.name == "uint8"
 
 
-@name(LaneDB.random_input.fget, "1", globals())
+@name(LaneDB.get_input, "1", globals())
 def _():
-    img, mask = train_DB.random_input
+    img, mask = train_DB.get_input(0)
     assert type(img) is ndarray and type(mask) is ndarray
     assert img.shape == (480, 640)
     assert mask.shape == (480, 640, 36)
@@ -121,12 +120,21 @@ def _():
     a = unique(mask)
     assert len(a) == 2 and 0 in a and 1 in a
     assert img.dtype.name == mask.dtype.name == "float64"
-    return
-    for i in range(36):
-        imshow_mat(mask[:, :, i])
-        show()
 
+
+@name(Categories, "1", globals())
+def _():
     return
-    imshow_mat(img)
-    show()
-    input(11111111111111)
+    for category in CATEGORIES._categories:
+        for i in range(999999):
+            print(i)
+            img, mask = train_DB.get_input(i)
+            if max_np(mask[:, :, category.id]) == 1:
+                print(category.name)
+                print(train_DB._get_example_paths(i))
+                mask[:, :, 0] = mask[:, :, category.id]
+                mask[:, :, 2] = img
+                mask[:, :, 1] = img
+                imshow_mat(mask[:, :, :3])
+                show()
+                break

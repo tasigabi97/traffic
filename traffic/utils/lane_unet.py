@@ -5,6 +5,26 @@ from traffic.utils.lane_helper import labels as labels_helper
 from traffic.logging import root_logger
 
 
+class Color(object):
+    colors = set()
+
+    def __init__(self, name: str, color: Tuple[int, int, int]):
+        self.name, self.color = name, color
+        Color.colors.add(self)
+
+    @staticmethod
+    def get_color():
+        ...
+
+
+# create colors
+{Color(label.name, label.color) for label in labels_helper}
+
+
+class Category(object):
+    ...
+
+
 class Category(object):
     def __init__(self, name: str, id: int, *colors: Tuple[int, int, int]):
         self.name, self.id = name, id
@@ -13,12 +33,8 @@ class Category(object):
     def add_color(self, color: Tuple[int, int, int]):
         self.colors.add(color)
 
-    def is_me(self, color: Tuple[int, int, int]):
-        for c in self.colors:
-            if c == color:
-                return True
-        return False
-        return color in self.colors
+
+color_to_id = dict()
 
 
 class Categories(Singleton):
@@ -34,6 +50,10 @@ class Categories(Singleton):
                 self[0].add_color(label.color)
         # rename categories
         self["void"].name = "Background"
+        # coloroid
+        for category in self._categories:
+            for color in category.colors:
+                color_to_id[color] = category.id
 
     def __getitem__(self, item) -> Category:
         if isinstance(item, int):
@@ -44,11 +64,6 @@ class Categories(Singleton):
         elif isinstance(item, str):
             for category in self._categories:
                 if category.name == item:
-                    return category
-            raise ValueError(item)
-        elif isinstance(item, tuple):
-            for category in self._categories:
-                if category.is_me(item):
                     return category
             raise ValueError(item)
         raise TypeError(item)
@@ -111,49 +126,51 @@ class LaneDB(object):
     def _random_example_id(self):
         return randrange(len(self._img_paths))
 
-    @property
-    def _random_example_paths(self):
-        random_i = self._random_example_id
-        random_img_path, random_mask_path = self._img_paths[random_i], self._mask_paths[random_i]
-        return random_img_path, random_mask_path
+    def _get_example_paths(self, id: int):
+        return self._img_paths[id], self._mask_paths[id]
 
-    @property
-    def random_example(self) -> Tuple[ndarray, ndarray]:
-        img_path, mask_path = self._random_example_paths
+    def _get_example(self, id: int) -> Tuple[ndarray, ndarray]:
+        img_path, mask_path = self._get_example_paths(id)
         img, mask = imread_skimage(img_path), imread_skimage(mask_path)
         img, mask = array_np(img, dtype=uint8), array_np(mask, dtype=uint8)
         mask = mask[..., :3]
         return img, mask
 
-    @property
-    def random_small_example(self) -> Tuple[ndarray, ndarray]:
-        img, mask = self.random_example
+    def _get_small_example(self, id: int) -> Tuple[ndarray, ndarray]:
+        img, mask = self._get_example(id)
         img = rescale_skimage(img, max(CAMERA_ROWS / img.shape[0], CAMERA_COLS / img.shape[1]), anti_aliasing=False, preserve_range=True)
         img = array_np(img, dtype=uint8)
         mask = imresize_scipy(mask, img.shape, interp="nearest")
         return img, mask
 
-    @property
-    def random_small_cropped_example(self) -> Tuple[ndarray, ndarray]:
-        img, mask = self.random_small_example
+    def _get_small_cropped_example(self, id: int) -> Tuple[ndarray, ndarray]:
+        img, mask = self._get_small_example(id)
         assert img.shape == mask.shape == (513, 640, 3)
         half_delta = (img.shape[0] - CAMERA_ROWS) // 2
         img, mask = img[half_delta : half_delta + CAMERA_ROWS], mask[half_delta : half_delta + CAMERA_ROWS]
         assert img.shape == mask.shape == (480, 640, 3)
         return img, mask
 
-    @property
-    def random_input(self) -> Tuple[ndarray, ndarray]:
-        img, mask = self.random_small_cropped_example
+    def get_input(self, id: int) -> Tuple[ndarray, ndarray]:
+        img, mask = self._get_small_cropped_example(id)
         normalized_grayscale_img = mean_np(img, axis=2) / 255
         one_hot = zeros((CAMERA_ROWS, CAMERA_COLS, len(CATEGORIES)), dtype=uint8)
         for row_id in range(CAMERA_ROWS):
             for col_id in range(CAMERA_COLS):
-                pixels_category_color = tuple(mask[row_id][col_id])
-                pixels_category_id = CATEGORIES[pixels_category_color].id
-                one_hot[row_id][col_id][pixels_category_id] = 1
+                pixels_category_color = tuple(mask[row_id, col_id, :])
+                pixels_category_id = color_to_id[pixels_category_color]
+                one_hot[row_id, col_id, pixels_category_id] = 1
         one_hot = array_np(one_hot, dtype=float64)
         return normalized_grayscale_img, one_hot
 
+    # rgb to int
+    @property
+    def random_input(self) -> Tuple[ndarray, ndarray]:
+        return self.get_input(self._random_example_id)
+
 
 train_DB, val_DB, test_DB = LaneDB._get_train_val_test_DB()
+
+
+class Unet(Singleton):
+    ...

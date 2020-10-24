@@ -7,6 +7,7 @@ from matplotlib.figure import Figure
 
 any_np = numpy.any
 apply_along_axis = numpy.apply_along_axis
+array_equal = numpy.array_equal
 array_np = numpy.array
 Array_imageio = imageio.core.util.Array
 Axes = Axes
