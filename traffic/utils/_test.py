@@ -1,7 +1,7 @@
 from traffic.testing import name, absolute_name
-from traffic.utils import get_ssid, webcam_server, Singleton
+from traffic.utils import get_ssid, webcam_server, Singleton,virtual_proxy_property,SingletonByIdMeta
 from traffic.consts import SSID_MONOR, SSID_VODAFONE, DROIDCAM, SPACE
-from traffic.imports import patch, check_output, Iterable_abc, Iterable_type
+from traffic.imports import patch, check_output, Iterable_abc, Iterable_type,raises
 from traffic.logging import root_logger
 from traffic.utils.lane_mrcnn import LaneDataset, LaneConfig
 
@@ -16,6 +16,147 @@ def is_droidcam_running():
     root_logger.info(out)
     root_logger.info(ret)
     return ret
+
+@name(SingletonByIdMeta.__init__, "1", globals())
+def _():
+    class Base:
+        def method(self):
+            ...
+        @staticmethod
+        def get_id(name,arg2=None):
+            return name
+    class A(Base, metaclass=SingletonByIdMeta):
+        def __init__(self,name,arg2=None):
+            self.name=name
+
+    a=A("a")
+    b=A("a",1)
+    assert type(A._instances)==dict
+    assert A._instances["a"] is a
+    assert b is a
+    assert a.id=="a"
+
+@name(SingletonByIdMeta.__init__, "called once", globals())
+def _():
+    class A(metaclass=SingletonByIdMeta):
+        def __init__(self,name,name2):
+            self.name=name
+            self.name2=name2
+
+        @staticmethod
+        def get_id(name,name2):
+            return name
+
+    assert len(A) == 0
+    a = A("a", 1)
+    b = A("a", 2)
+    assert a is b
+    assert a.name2 == 1
+
+@name(SingletonByIdMeta.__len__, "1", globals())
+def _():
+    class A(metaclass=SingletonByIdMeta):
+        def __init__(self,name):
+            self.name=name
+        @staticmethod
+        def get_id(name):
+            return name
+    assert len(A)==0
+    a=A("a")
+    b=A("a")
+    assert len(A)==1
+    b=A("b")
+    assert len(A)==2
+
+@name(SingletonByIdMeta.clear, "1", globals())
+def _():
+    class A(metaclass=SingletonByIdMeta):
+        def __init__(self,name):
+            self.name=name
+        @staticmethod
+        def get_id(name):
+            return name
+    assert A._instances == dict()
+    a=A("a")
+    b=A("a")
+    assert   A._instances == {"a":b}
+    A.clear()
+    assert A._instances == dict()
+
+@name(SingletonByIdMeta.__iter__, "1", globals())
+def _():
+    class A(metaclass=SingletonByIdMeta):
+        def __init__(self,name):
+            self.name=name
+        @staticmethod
+        def get_id(name):
+            return name
+
+    a=A("a")
+    b=A("b")
+    for i in A:
+        assert i is a or i is b
+
+@name(SingletonByIdMeta.__getitem__, "default", globals())
+def _():
+    class A(metaclass=SingletonByIdMeta):
+        def __init__(self,name):
+            self.name=name
+        @staticmethod
+        def get_id(name):
+            return name
+
+    a = A("a")
+    assert A[a] is a
+
+@name(SingletonByIdMeta.__getitem__, "__eq__", globals())
+def _():
+    class A(metaclass=SingletonByIdMeta):
+        def __init__(self,name):
+            self.name=name
+        @staticmethod
+        def get_id(name):
+            return name
+
+        def __eq__(self, other):
+            return self.name==other
+
+    a = A("a")
+    assert A["a"] is a is A[a]
+    with raises(IndexError):
+        A["b"]
+
+@name(SingletonByIdMeta.__new__, "without get_id", globals())
+def _():
+    with raises(KeyError):
+        class A(metaclass=SingletonByIdMeta):
+            ...
+
+
+@name(SingletonByIdMeta.__new__, "with bad signature get_id", globals())
+def _():
+    class Base:
+        def __init__(self,a,b:int,*args:"s"):...
+    with raises(NameError):
+        class A(Base, metaclass=SingletonByIdMeta):
+            @staticmethod
+            def get_id():...
+
+
+@name(virtual_proxy_property, "1", globals())
+def _():
+    class A:
+        @virtual_proxy_property
+        def getter(self):
+            return 0
+    a=A()
+    with raises(AttributeError):
+        a._getter
+    assert a.getter ==0
+    assert a._getter == 0
+    a._getter=1
+    assert a.getter ==1
+    assert A.getter.fget.__name__ == "getter"
 
 
 @name(LaneDataset.get_min_instance_size, "1", globals())

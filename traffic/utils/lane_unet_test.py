@@ -4,44 +4,181 @@ from traffic.utils.lane_unet import *
 
 EXAMPLE_MASK_PATH = "/traffic/lane/Labels_road02/Label/Record028/Camera 5/170927_071400339_Camera_5_bin.png"
 EXAMPLE_IMG_PATH = "/traffic/lane/ColorImage_road02/ColorImage/Record028/Camera 5/170927_071400339_Camera_5.jpg"
-
+IMG=array_np([[[0,     0 ,0],  [    0   ,  1,   2]]],dtype=uint8)
+assert IMG.shape == (1,2,3)
 
 def setup_function(function):
     Singleton._instances = dict()
+    Color.clear()
+    Category.clear()
 
-
-@name(Unet.model.fget, "proxy", globals())
+@name(LaneDB.create_categories, "colors", globals())
 def _():
-    u = Unet(1)
-    u._model = 1
-    model = u.model
-    assert model == 1
+    LaneDB.create_categories()
+    assert len(Color) == 38
+    assert Color["void"] is Color[(0,0,0)]
+    assert Color("void2",(0,0,0)) is Color["void"]
+    assert Color("void2",(0,0,0)).name == "void"
+    assert len(Color) == 38
+
+@name(LaneDB.create_categories, "categories", globals())
+def _():
+    LaneDB.create_categories()
+    assert len(Category) == 36
+    assert Category["Háttér"] is Category[(0,0,0)] is Category["void"] is Category["ignored"]
+
+@name(OneHot.__init__, "1", globals())
+def _():
+    cat1=Category("cat1",Color("color1",(0,0,1)),Color("color2",(0,0,0)))
+    cat2=Category("cat2",Color("color3",(1,0,1)))
+    o=OneHot(1,2,(cat2,cat1))
+    assert o.row_number==1 and o.col_number==2
+    assert type(o.colors) is list is type(o.categories)
+    assert o.categories[0] is cat1 and o.categories[1] is cat2
+    assert o.colors[0].name == "color2"
+    assert o.colors[1].name == "color1"
+    assert o.colors[2].name == "color3"
+
+@name(OneHot.one_hot_container.fget, "1", globals())
+def _():
+    cat1=Category("cat1",Color("color1",(0,0,1)),Color("color2",(0,0,0)))
+    cat2=Category("cat2",Color("color3",(1,0,1)))
+    o=OneHot(1,2,(cat2,cat1))
+    assert type(o.one_hot_container) is ndarray
+    assert o.one_hot_container.dtype.name == "float64"
+    assert o.one_hot_container.shape == (1, 2, 2)
+
+@name(OneHot.one_hot_container.fget, "2", globals())
+def _():
+    cat1=Category("cat1",Color("color1",(0,0,1)))
+    o=OneHot(1,1,(cat1,))
+    assert type(o.one_hot_container) is ndarray
+    assert o.one_hot_container.dtype.name == "float64"
+    assert o.one_hot_container.shape == (1, 1, 1)
+    a=array_np([[[9]]],dtype=uint8)
+    assert o.one_hot_container.tolist() != a.tolist()
+    o.one_hot_container[:,:,:]=a
+    assert o.one_hot_container.dtype.name == "float64"
+    assert o.one_hot_container.tolist() == a.tolist()
+
+
+@name(OneHot.color_id_container.fget, "1", globals())
+def _():
+    cat1=Category("cat1",Color("color1",(0,0,1)),Color("color2",(0,0,0)))
+    cat2=Category("cat2",Color("color3",(1,0,1)))
+    o=OneHot(1,2,(cat2,cat1))
+    assert type(o.color_id_container) is ndarray
+    assert o.color_id_container.dtype.name == "uint32"
+    assert o.color_id_container.shape == (1, 2, 3)
+@name(OneHot.color_id_container.fget, "2", globals())
+def _():
+    cat1=Category("cat1",Color("color1",(0,0,1)))
+    o=OneHot(1,1,(cat1,))
+    assert type(o.color_id_container) is ndarray
+    assert o.color_id_container.dtype.name == "uint32"
+    assert o.color_id_container.shape == (1, 1, 1)
+    a=array_np([[[9]]],dtype=uint8)
+    assert o.color_id_container.tolist() != a.tolist()
+    o.color_id_container[:,:,:]=a
+    assert o.color_id_container.dtype.name == "uint32"
+    assert o.color_id_container.tolist() == a.tolist()
+
+@name(OneHot.uint32_img_container.fset, "fset", globals())
+def _():
+    o=OneHot(IMG.shape[0],IMG.shape[1],[])
+    assert o.uint32_img_container.dtype.name == "uint32"
+    assert o.uint32_img_container.tolist() != IMG.tolist()
+    o.uint32_img_container=IMG
+    assert o.uint32_img_container.dtype.name == "uint32"
+    assert o.uint32_img_container.tolist() == IMG.tolist()
+
+@name(OneHot.get_color_id, "1", globals())
+def _():
+    assert OneHot.get_color_id((0,0,0)) == 0
+    assert OneHot.get_color_id((1,1,1)) == 65793
+
+@name(OneHot.get_color, "1", globals())
+def _():
+    assert OneHot.get_color(65793) == (1,1,1)
+    assert OneHot.get_color(0) == (0,0,0)
+    assert OneHot.get_color(1) == (0,0,1)
+    assert OneHot.get_color(256) == (0,1,0)
+
+@name(OneHot.get_color, "inverse", globals())
+def _():
+    color_ids=[256*256*256,0,1,255,256,999]
+    for color_id in color_ids:
+        assert OneHot.get_color_id(OneHot.get_color(color_id))==color_id
+
+@name(OneHot.color_id_array.fget, "1", globals())
+def _():
+    cat1=Category("cat1",Color("color1",(0,0,1)),Color("color2",(0,0,0)))
+    cat2=Category("cat2",Color("color3",(1,0,1)),Color("color4",(0,1,0)))
+    o=OneHot(1,2,(cat2,cat1))
+    assert type(o.color_id_array) is ndarray
+    assert o.color_id_array.dtype.name == "uint32"
+    assert o.color_id_array.shape == (1, 2, 4)
+    assert o.color_id_array.tolist() == [[[0,     1 ,  256, 65537],  [    0   ,  1,   256, 65537]]]
+
+
+@name(OneHot.get_one_hot, "1", globals())
+def _():
+    img, mask = train_DB._get_small_cropped_example(0)
+    LaneDB.create_categories()
+
+    cat1=Category("cat1",Color("color1",(0,0,1)),Color("color2",(0,0,0)))
+    cat2=Category("cat2",Color("color3",(1,0,1)),Color("color4",(0,1,0)))
+    o=OneHot(1,2,(cat2,cat1))
+    o.get_one_hot(IMG)
+
 
 
 @name(Unet.model.fget, "1", globals())
 def _():
+    input("end")
+    u = Unet()
+    assert type(u.model) ==Model_ke
+
+@name(Unet.predict, "1", globals())
+def _():
+    u = Unet()
+    mask=u.predict(train_DB.random_train_input[0])
+    imshow_mat(mask[:, :, :3])
+    show()
+    input(1111111111111111111111111)
+
+@name(Unet.train, "1", globals())
+def _():
+    u = Unet()
+    u.train(batch_size=1,steps_per_epoch=1,validation_steps=1,early_stopping_min_delta=0,RLR_min_delta=0,early_stopping_patience=0,RLR_patience=0,RLRFactor=0.1)
+@name(Unet.structure.fget, "proxy", globals())
+def _():
     u = Unet(1)
-    model = u.model
+    u._structure = 1
+    structure = u.structure
+    assert structure == 1
+
+
+@name(Unet.structure.fget, "1", globals())
+def _():
+    u = Unet(1)
+    model = u.structure
     assert type(model) is Model_ke
 
 
-@name(Color, "1", globals())
-def _():
-    assert len(Color.colors) == 38
-    assert len({color.color for color in Color.colors}) == 38
-    assert len({color.name for color in Color.colors}) == 38
 
 
-@name(Category.__init__, "1", globals())
+
+@name(OldCategory.__init__, "1", globals())
 def _():
-    cat = Category("alma", 1, (1, 1, 1), (2, 2, 2))
+    cat = OldCategory("alma", 1, (1, 1, 1), (2, 2, 2))
     assert cat.name == "alma" and cat.id == 1
     assert len(cat.colors) == 2 and (1, 1, 1) in cat.colors and (2, 2, 2) in cat.colors
 
 
-@name(Category.add_color, "1", globals())
+@name(OldCategory.add_color, "1", globals())
 def _():
-    cat = Category("alma", 1, (1, 1, 1), (2, 2, 2))
+    cat = OldCategory("alma", 1, (1, 1, 1), (2, 2, 2))
     cat.add_color((3, 3, 3))
     assert len(cat.colors) == 3 and (3, 3, 3) in cat.colors
 
@@ -129,9 +266,9 @@ def _():
     assert img.dtype.name == mask.dtype.name == "uint8"
 
 
-@name(LaneDB.get_input, "1", globals())
+@name(LaneDB.get_train_input, "1", globals())
 def _():
-    img, mask = train_DB.get_input(0)
+    img, mask = train_DB.get_train_input(0)
     assert type(img) is ndarray and type(mask) is ndarray
     assert img.shape == (480, 640)
     assert mask.shape == (480, 640, 36)
@@ -147,7 +284,7 @@ def _():
     for category in CATEGORIES._categories:
         for i in range(999999):
             print(i)
-            img, mask = train_DB.get_input(i)
+            img, mask = train_DB.get_train_input(i)
             if max_np(mask[:, :, category.id]) == 1:
                 print(category.name)
                 print(train_DB._get_example_paths(i))

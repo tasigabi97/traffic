@@ -5,6 +5,7 @@ from matplotlib.patches import Rectangle, Polygon
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
+Adam_ke=keras.optimizers.Adam
 any_np = numpy.any
 apply_along_axis = numpy.apply_along_axis
 array_equal = numpy.array_equal
@@ -18,17 +19,22 @@ colored = termcolor.colored
 COLOR_RGB2LUV = cv2.COLOR_RGB2LUV
 COLOR_RGB2GRAY = cv2.COLOR_RGB2GRAY
 Conv2D_ke = keras.layers.Conv2D
+Conv2DTranspose_ke = keras.layers.Conv2DTranspose
 count_nonzero = numpy.count_nonzero
 cvtColor = cv2.cvtColor
 destroyAllWindows = cv2.destroyAllWindows
+EarlyStopping_ke=keras.callbacks.EarlyStopping
 expand_dims = numpy.expand_dims
+equal_np=numpy.equal
 Figure = Figure
 find_contours = skimage.measure.find_contours
 fliplr = numpy.fliplr
 float64 = numpy.float64
+load_model_ke=keras.models.load_model
 max_np = numpy.max
 mean_np = numpy.mean
 Model_ke = keras.models.Model
+ModelCheckpoint_ke=keras.callbacks.ModelCheckpoint
 ndarray = numpy.ndarray
 histogram = numpy.histogram
 imread_skimage = skimage.io.imread
@@ -42,12 +48,14 @@ label = skimage.measure.label
 plot_model_ke = keras.utils.plot_model
 Polygon = Polygon
 Rectangle = Rectangle
+ReduceLROnPlateau_ke=keras.callbacks.ReduceLROnPlateau
 raises = pytest.raises
 reshape = numpy.reshape
 rescale_skimage = skimage.transform.rescale
 resize_skimage = skimage.transform.resize
 show = show
 subplots = subplots
+ones_np=numpy.ones
 uint8 = numpy.uint8
 uint32 = numpy.uint32
 unique = numpy.unique

@@ -4,7 +4,7 @@ from traffic.imports import (
     CalledProcessError,
     contextmanager,
     Popen,
-    subplots,
+    signature,
     any_np,
     Rectangle,
     Polygon,
@@ -19,10 +19,26 @@ from traffic.imports import (
     ndarray,
     List,
     Axes,
+Iterable_type,
+wraps,
+Callable
 )
 from traffic.logging import root_logger
-from traffic.consts import SSID_VODAFONE, IP_VODAFONE, DROIDCAM, DROIDCAM_PORT
+from traffic.consts import SSID_VODAFONE, IP_VODAFONE, DROIDCAM, DROIDCAM_PORT,PRIVATE
 from mrcnn.visualize import random_colors, apply_mask
+
+def virtual_proxy_property(func:Callable)->property:
+    @property
+    @wraps(func)
+    def new_func(self):
+        ATTR_NAME = PRIVATE + func.__name__
+        if hasattr(self, ATTR_NAME):
+            return getattr(self, ATTR_NAME)
+        ret= func(self)
+        setattr(self, ATTR_NAME, ret)
+        return ret
+    return new_func
+
 
 
 def set_axes(
@@ -155,3 +171,61 @@ class Singleton(object):
         new_instance = super().__new__(this_cls)
         Singleton._instances[this_cls] = new_instance
         return new_instance
+
+class SingletonByIdMeta(type):
+    _get_id_name= "get_id"
+    _id_name="id"
+
+    def __new__(
+        cls: "SingletonByIdMeta", new_cls_name: str, new_cls_bases: tuple, class_definition_dict: dict,
+    ):
+        new_cls = super().__new__(cls, new_cls_name, new_cls_bases, class_definition_dict)
+        if not hasattr(new_cls, cls._get_id_name):
+            raise KeyError("Please define a {} as a staticmethod".format(cls._get_id_name))
+        init_params=[par for par in signature(getattr(new_cls,"__init__")).parameters.values()]
+        init_params=init_params[1:]
+        get_id_params=[par for par in signature(getattr(new_cls, cls._get_id_name)).parameters.values()]
+        if  init_params != get_id_params:
+            root_logger.error(init_params)
+            root_logger.error(get_id_params)
+            raise NameError("Please define {} with the same signature as __init__".format(cls._get_id_name))
+        return new_cls  # __init__()
+
+    # called before __new__ return automatically
+    def __init__(new_cls: type, new_cls_name: str, new_cls_bases: tuple, new_cls_dict: dict):
+        super().__init__(new_cls_name, new_cls_bases, new_cls_dict)
+        new_cls._instances = dict()
+        original_init=new_cls.__init__
+        def __new__(cls, *args, **kwargs):
+            id=getattr(cls, SingletonByIdMeta._get_id_name)(*args, **kwargs)
+            if id in cls._instances.keys():
+                return cls._instances[id]
+            new_instance = super(cls, cls).__new__(cls)
+            cls._instances[id]=new_instance
+            return new_instance
+
+        def __init__(self,*args, **kwargs):
+            if SingletonByIdMeta._id_name in self.__dict__.keys():
+                return
+            id = getattr(self, SingletonByIdMeta._get_id_name)(*args, **kwargs)
+            setattr(self,SingletonByIdMeta._id_name,id)
+            original_init(self,*args,**kwargs)
+
+        new_cls.__new__,new_cls.__init__ = __new__,__init__
+
+
+    def __iter__(new_cls) -> Iterable_type:
+        return iter(new_cls._instances.values())
+
+    def clear(new_cls):
+        new_cls._instances.clear()
+
+    def __getitem__(new_cls, item):
+        for i in new_cls:
+            if i == item:
+                return i
+        raise IndexError("object with index ({}) not found".format(item))
+
+    def __len__(new_cls):
+        return len(new_cls._instances)
+
