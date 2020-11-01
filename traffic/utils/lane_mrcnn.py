@@ -7,7 +7,7 @@ from traffic.imports import (
     join_path,
     imread_skimage,
     count_nonzero,
-    unique,
+    unique_np,
     array_np,
     int32,
     bool_np,
@@ -25,7 +25,7 @@ from traffic.utils.lane_helper import labels
 from traffic.logging import root_logger
 
 
-color_to_train_id_dict = {label.color: label.trainId for label in labels}
+color_to_train_id_dict = {label.rgb_tuple: label.trainId for label in labels}
 
 
 class LaneConfig(Config):
@@ -162,7 +162,7 @@ class LaneDataset(Dataset):
         component_id_mask, max_component_id = label(train_id_mask, background=0, return_num=True, connectivity=2)
         root_logger.debug("max_component_id={}".format(max_component_id))
         root_logger.debug("max_np(component_id_mask)={}".format(max_np(component_id_mask)))
-        root_logger.debug("unique(train_id_mask)={}".format(unique(train_id_mask)))
+        root_logger.debug("unique(train_id_mask)={}".format(unique_np(train_id_mask)))
         # background cavity is not an object so we need max_component_id * Boolean mask
         # get component ids which need masks
         ret_masks = zeros((component_id_mask.shape[0], component_id_mask.shape[1], max_component_id), dtype=uint8)
