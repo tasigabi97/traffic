@@ -25,7 +25,7 @@ from traffic.utils.lane_helper import labels
 from traffic.logging import root_logger
 
 
-color_to_train_id_dict = {label.rgb_tuple: label.trainId for label in labels}
+color_to_train_id_dict = {label.name: label.trainId for label in labels}
 
 
 class LaneConfig(Config):
