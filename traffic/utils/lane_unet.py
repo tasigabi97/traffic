@@ -109,12 +109,58 @@ class LaneDB:
     @staticmethod
     def create_categories():
         [Color(label.name, label.color) for label in labels_helper]
-        Category("Hatter", Color["noise"], Color["ignored"], Color["void"])
-        special_names = ["noise", "ignored", "void"]
-        for color in Color:
-            if color.name in special_names:
-                continue
-            Category(color.name, color)
+        Category(
+            "Hatter",
+            Color["noise"],
+            Color["ignored"],
+            Color["void"],
+            Color["a_n_lu"],
+            Color["a_y_t"],
+            Color["db_w_g"],
+            Color["db_w_s"],
+            Color["db_y_g"],
+            Color["ds_w_dn"],
+            Color["ds_w_s"],
+            Color["s_n_p"],
+        )
+        # s_n_p üres egyenlőre
+        # ds_w_s üres egyenlőre
+        # ds_w_dn üres egyenlőre
+        # db_y_g üres egyenlőre
+        # db_w_s üres egyenlőre
+        # db_w_g üres egyenlőre
+        # a_y_t üres egyenlőre
+        # a_n_lu ha netán értelmes dolog lenne akkor is kevés lenne szóval ezt hagyjuk szerintem
+        Category(
+            "Nyil",
+            Color["a_w_l"],
+            Color["a_w_r"],
+            Color["a_w_t"],
+            Color["a_w_u"],
+            Color["a_w_tl"],
+            Color["a_w_tr"],
+            Color["a_w_tu"],
+            Color["a_w_tlr"],
+            Color["a_w_lr"],
+            Color["a_w_m"],
+        )
+        # a_w_m ből nem találtam egyenlőre, szóval gondolom alig lehet, de név alapján lehet valami egzotikus nyíl
+        Category("Zebra", Color["c_wy_z"], Color["b_n_sr"], Color["r_wy_np"], Color["s_w_s"])
+        # b_n_sr gyalogos átkelőhöz van köze, lehet hagyni kéne
+        # r_wy_np |X| aminek kereszteződéshez van köze, lehet hagyni kéne
+        # s_w_s útsávok végei a zebrák előtt, lehet hagyni kéne
+        Category("Teli_savelvalaszto", Color["s_w_d"], Color["s_y_d"])
+        Category("Szaggatott_savelvalaszto", Color["b_w_g"], Color["b_y_g"])
+        Category("Dupla_savelvalaszto", Color["ds_y_dn"])
+        # ds_y_dn sokszor van kerítés a sávok fölött, lehet érdemes lenne simán a telihez venni
+        Category("Melleksav_elvalaszto", Color["om_n_n"])
+        # om_n_n többnyire egybeolvadnak az ezzel elválasztott sávok, érdemes-e külön kategóriába venni?
+        Category("Egyeb_savelvalaszto", Color["sb_w_do"], Color["sb_y_do"], Color["s_w_c"], Color["s_y_c"])
+        # sb_w_do belezavarna a teli sávelválasztóba szerintem
+        Category("Parkolo", Color["s_w_p"])
+        Category("Rombusz", Color["d_wy_za"])
+        Category("Regi_lekopott_aszfaltjelzesek", Color["vom_wy_n"])
+        # szerintem mehetne háttérnek
 
     @staticmethod
     def _get_all_path():
