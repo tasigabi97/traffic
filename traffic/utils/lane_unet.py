@@ -88,7 +88,7 @@ class OneHot:
     def one_hot_container(self) -> ndarray:
         return zeros((self.row_number, self.col_number, len(self.categories)), dtype=float64)
 
-    def get_encoded(self, rgb_array: ndarray) -> ndarray:  # todo
+    def get_encoded(self, rgb_array: ndarray) -> ndarray:
         self.uint32_img_container[:, :, :] = rgb_array
         self.one_hot_container[:, :, :] = 0
         self.uint32_img_container[:, :, 0] *= 256 * 256
@@ -188,7 +188,7 @@ class LaneDB:
         img_paths, mask_paths = LaneDB._get_all_path()
         train_img_paths, train_mask_paths, val_img_paths, val_mask_paths, test_img_paths, test_mask_paths = [], [], [], [], [], []
         for i in range(len(img_paths)):
-            if i == 0:
+            if i == 0:  # todo ez pont fos példa
                 train_img_paths.append(img_paths[i])
                 train_mask_paths.append(mask_paths[i])
             elif i == 1:
@@ -248,7 +248,6 @@ class LaneDB:
         one_hot = self.one_hot_coder.get_encoded(mask)
         return normalized_img, one_hot
 
-    # rgb to int
     @property
     def random_train_input(self) -> Tuple[ndarray, ndarray]:
         return self.get_train_input(self._random_example_id)
@@ -269,8 +268,8 @@ class Unet(Singleton):
         return load_model_ke(filepath=self.hdf5_path)
 
     def get_prediction(self, rgb_array: ndarray) -> ndarray:
-        normalized_grayscale_img = mean_np(rgb_array, axis=2) / 255
-        input_batch = normalized_grayscale_img[None, :, :, None]
+        normalized_img = rgb_array / 255
+        input_batch = normalized_img[None, :, :, :]
         output_batch = self.model.predict_on_batch(input_batch)
         ret = output_batch[0]
         return ret
@@ -291,7 +290,8 @@ class Unet(Singleton):
         self.RLRFactor = RLRFactor  # 0.2
         self.batch_size, self.steps_per_epoch, self.validation_steps = batch_size, steps_per_epoch, validation_steps
         self.max_epochs = 999
-        self.metrics = ["acc"]
+        self.metrics = ["categorical_accuracy"]
+        self.monitor = "loss"
         #
         self.structure.compile(optimizer=Adam_ke(), loss="categorical_crossentropy", metrics=self.metrics)
         history = self.structure.fit_generator(
@@ -314,22 +314,22 @@ class Unet(Singleton):
         return self.batch_generator(self.val_DB)
 
     def batch_generator(self, database: LaneDB):
-        grayscale_array_container, one_hot_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, 1), dtype=float64), zeros(
-            (self.batch_size, CAMERA_ROWS, CAMERA_COLS, self.category_num), dtype=float64
+        img_array_container, one_hot_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, 3), dtype=float64), zeros(
+            (self.batch_size, CAMERA_ROWS, CAMERA_COLS, len(Category)), dtype=float64
         )
         while True:
             for i in range(self.batch_size):
-                grayscale_img, one_hot = database.random_train_input
-                grayscale_array_container[i] = grayscale_img[:, :, None]  # expand dims
+                img, one_hot = database.random_train_input
+                img_array_container[i] = img[:, :, :]
                 one_hot_container[i] = one_hot
-            yield grayscale_array_container.copy(), one_hot_container.copy()  # ha működik utáca kikapcsolni
+            yield img_array_container.copy(), one_hot_container.copy()  # ha működik utáca kikapcsolni
 
     @virtual_proxy_property
     def structure(self) -> Model_ke:
         filters = [64]
         kernel_size = [3]
         activation = "relu"
-        input_l = Input_ke(shape=(CAMERA_ROWS, CAMERA_COLS, 1))
+        input_l = Input_ke(shape=(CAMERA_ROWS, CAMERA_COLS, 3))
         conv_0_l = Conv2D_ke(filters=filters[0], kernel_size=kernel_size[0], activation=activation)(input_l)
         conv_t_0_l = Conv2DTranspose_ke(
             filters=filters[0],
@@ -338,7 +338,7 @@ class Unet(Singleton):
         )(conv_0_l)
 
         output_l = Conv2D_ke(
-            filters=self.category_num,
+            filters=len(Category),
             kernel_size=3,
             padding="same",
             activation="softmax",
@@ -349,15 +349,15 @@ class Unet(Singleton):
 
     @virtual_proxy_property
     def early_stopper(self):
-        return EarlyStopping_ke(monitor=self.metrics[0], min_delta=self.early_stopping_min_delta, patience=self.early_stopping_patience, verbose=1)
+        return EarlyStopping_ke(monitor=self.monitor, min_delta=self.early_stopping_min_delta, patience=self.early_stopping_patience, verbose=1)
 
     @virtual_proxy_property
     def saver(self):
-        return ModelCheckpoint_ke(filepath=self.hdf5_path, monitor=self.metrics[0], save_best_only=True)
+        return ModelCheckpoint_ke(filepath=self.hdf5_path, monitor=self.monitor, save_best_only=True, verbose=1)
 
     @virtual_proxy_property
     def learning_rate_reducer(self):
-        return ReduceLROnPlateau_ke(monitor=self.metrics[0], factor=self.RLRFactor, verbose=1, epsilon=self.RLR_min_delta, patience=self.RLR_patience)
+        return ReduceLROnPlateau_ke(monitor=self.monitor, factor=self.RLRFactor, verbose=1, epsilon=self.RLR_min_delta, patience=self.RLR_patience)
 
     @virtual_proxy_property
     def callbacks(self):

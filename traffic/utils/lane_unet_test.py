@@ -433,30 +433,47 @@ def _():
     ).start()
     m_one_hot_coder = patch.object(LaneDB, "one_hot_coder", new=MagicMock()).start()
     m_one_hot_coder.get_encoded.return_value = sentinel.b
-    img, mask = x.get_train_input(0)
+    img, one_hot = x.get_train_input(0)
     m__get_small_cropped_example.assert_called_once_with(0)
     m_one_hot_coder.get_encoded.assert_called_once_with(sentinel.a)
-    assert type(img) is ndarray and mask is sentinel.b
+    assert type(img) is ndarray and one_hot is sentinel.b
     assert img.shape == (480, 640, 3)
     assert img.max() <= 1 and img.min() >= 0 and (0 < img.mean() < 1)
     assert img.dtype.name == "float64"
 
 
+@name(Unet.train, "1", globals())
+def _():
+    x = object.__new__(Unet)
+    return
+    x.train(
+        batch_size=1,
+        steps_per_epoch=1,
+        validation_steps=1,
+        early_stopping_min_delta=0,
+        RLR_min_delta=0,
+        early_stopping_patience=0,
+        RLR_patience=0,
+        RLRFactor=0.1,
+    )
+
+
 @name(Unet.model.fget, "1", globals())
 def _():
-    u = Unet.__new__(Unet)
-    u.hdf5_path = "/traffic/Unet.hdf5"
-    assert type(u.model) == Model_ke
+    x = object.__new__(Unet)
+    x.hdf5_path = "/traffic/Unet.hdf5"
+    assert type(x.model) == Model_ke
 
 
 @name(Unet.get_prediction, "1", globals())
 def _():
-    u = Unet.__new__(Unet)
-    u.hdf5_path = "/traffic/Unet.hdf5"
+    x = object.__new__(Unet)
+    x.hdf5_path = "/traffic/Unet.hdf5"
     grayscale_array = ones_np((480, 640, 3), dtype=uint8) * 111
-    mask = u.get_prediction(grayscale_array)
+    mask = x.get_prediction(grayscale_array)
     summed_mask = sum_np(mask, axis=2)
     assert summed_mask.shape == (480, 640)
+    assert mask.dtype.name == "float32"
     assert mask.shape[0] == 480 and mask.shape[1] == 640 and len(mask.shape) == 3
     assert mask.shape[2] > 3
     assert_almost_equal_np(summed_mask, ones_np((480, 640), dtype=uint8), decimal=6)
@@ -464,11 +481,7 @@ def _():
     # show()
 
 
-# @name(Unet.train, "1", globals())
-# def _():
-#     u = Unet()
-#     u.train(batch_size=1,steps_per_epoch=1,validation_steps=1,early_stopping_min_delta=0,RLR_min_delta=0,early_stopping_patience=0,RLR_patience=0,RLRFactor=0.1)
-# @name(Unet.structure.fget, "proxy", globals())
+## @name(Unet.structure.fget, "proxy", globals())
 # def _():
 #     u = Unet(1)
 #     u._structure = 1
@@ -481,9 +494,4 @@ def _():
 #     u = Unet(1)
 #     model = u.structure
 #     assert type(model) is Model_ke
-#
-#
-
-#
-#
 #
