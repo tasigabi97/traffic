@@ -53,7 +53,7 @@ sudo rm -rf build
 python setup.py build_ext install
 
 echo SET PYCHARM PATH @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-read  -n 1 -p"Add existing 3.5 interpreter, open add path and quit."
+read  -n 1 -p"Add existing 3.5 interpreter, open add path, press ENTER here and quit."
 cp /home/gabi/PycharmProjects/traffic/jdk.table.xml /home/gabi/.config/JetBrains/PyCharmCE2020.2/options/jdk.table.xml
 cat /home/gabi/.config/JetBrains/PyCharmCE2020.2/options/jdk.table.xml
 echo Restart Pycarm
