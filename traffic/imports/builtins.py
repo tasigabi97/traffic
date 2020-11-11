@@ -1,4 +1,4 @@
-import collections, contextlib, functools, inspect, itertools, logging, random, re, statistics, subprocess, time, typing, os, unittest.mock
+import collections, contextlib, functools, inspect, itertools, json, logging, math, random, re, statistics, subprocess, time, typing, os, unittest.mock
 
 abspath = os.path.abspath
 call_mock = unittest.mock.call
@@ -10,6 +10,8 @@ contextmanager = contextlib.contextmanager
 cycle = itertools.cycle
 DEBUG = logging.DEBUG
 dirname = os.path.dirname
+dump_json = json.dump
+load_json = json.load
 exists = os.path.exists
 Formatter = logging.Formatter
 getcwd = os.getcwd
@@ -24,6 +26,7 @@ LogRecord = logging.LogRecord
 mean = statistics.mean
 mkdir = os.mkdir
 MagicMock = unittest.mock.MagicMock
+mock_open = unittest.mock.mock_open
 namedtuple = collections.namedtuple
 normpath = os.path.normpath
 patch = unittest.mock.patch
@@ -32,6 +35,7 @@ PropertyMock = unittest.mock.PropertyMock
 Popen = subprocess.Popen
 randrange = random.randrange
 realpath = os.path.realpath
+remove_os = os.remove
 sentinel = unittest.mock.sentinel
 SequenceType = typing.Sequence
 shuffle = random.shuffle
@@ -42,3 +46,4 @@ Tuple = typing.Tuple
 sub = re.sub
 Union = typing.Union
 wraps = functools.wraps
+logarithm = math.log

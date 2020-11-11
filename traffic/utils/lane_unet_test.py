@@ -19,9 +19,46 @@ def teardown_function(function):
     patch.stopall()
 
 
-# module test
+# << module test
+assert len(Color) == 38
+assert len(MaskSource.source_encoder.categories) == len(Color)
 assert sum(len(category) for category in Category) == len(Color)
-# module test
+DBs = LaneDB.get_train_val_test_DB()
+for DB in DBs:
+    for image_and_mask_source_pair in DB.image_and_mask_source_pairs:
+        mask_source = image_and_mask_source_pair.mask_source
+        assert_almost_equal_np(sum(mask_source.attributes.values()), 1)
+        assert_almost_equal_np(sum(mask_source.category_probabilities.values()), 1)
+    assert_almost_equal_np(sum(DB.category_probabilities.values()), 1)
+    for k, v in DB.category_probabilities.items():
+        if k == "Hatter":
+            assert v > 0.84
+        else:
+            assert v >= 0
+# module test >>
+if False:
+    train_DB = DBs[0]
+    img_source, mask_source = train_DB.get_sources(0)
+    if False:
+        img_source.visualize_data()
+        mask_source.visualize_data()
+    img_source.visualize_an_input()
+    mask_source.visualize_an_input(train_DB.one_hot_coder)
+if False:
+    for DB in DBs:
+        for img_source, mask_source in zip(DB.img_sources, DB.mask_sources):
+            try:
+                img_source.data
+                mask_source.data
+                root_logger.info(img_source.path)
+                root_logger.info(mask_source.path)
+            except Exception as e:
+                root_logger.warning(img_source.path)
+                root_logger.warning(mask_source.path)
+                remove_os(img_source.path)
+                remove_os(mask_source.path)
+
+
 if False:
     [print(str(c)) for c in Unet.test_DB.one_hot_coder.categories]
     input()
@@ -88,6 +125,69 @@ def _():
     assert a.method() == 5
     with raises(Exception):
         a.__init__()
+
+
+@name(categorical_crossentropy_ke, "1d same", globals())
+def _():
+    arr1 = array_np([0, 1])
+    arr2 = arr1
+    assert arr1.shape == (2,)
+    y_true = variable_ke(arr1)
+    y_pred = variable_ke(arr2)
+    x = categorical_crossentropy_ke(y_true, y_pred)
+    x = eval_ke(x)
+    assert x.shape == ()
+    assert_almost_equal_np(x, 0)
+
+
+@name(categorical_crossentropy_ke, "1d commutative", globals())
+def _():
+    arr1 = array_np([0, 1])
+    arr2 = array_np([1, 0])
+    y_true = variable_ke(arr1)
+    y_pred = variable_ke(arr2)
+    x1 = categorical_crossentropy_ke(y_true, y_pred)
+    x1 = eval_ke(x1)
+    #
+    arr1 = array_np([1, 0])
+    arr2 = array_np([0, 1])
+    y_true = variable_ke(arr1)
+    y_pred = variable_ke(arr2)
+    x2 = categorical_crossentropy_ke(y_true, y_pred)
+    x2 = eval_ke(x2)
+    #
+    assert_almost_equal_np(x1, x2)
+
+
+@name(categorical_crossentropy_ke, "2d same", globals())
+def _():
+    arr1 = array_np([[0, 1, 0], [1, 0, 0]])
+    arr2 = arr1
+    assert arr1.shape == (2, 3)
+    y_true = variable_ke(arr1)
+    y_pred = variable_ke(arr2)
+    x = categorical_crossentropy_ke(y_true, y_pred)
+    x = eval_ke(x)
+    assert x.shape == (2,)
+    assert_almost_equal_np(x, [0, 0])
+
+
+@name(categorical_crossentropy_ke, "3d same", globals())
+def _():
+    arr1 = array_np([[[0, 1, 0], [1, 0, 0]]])
+    arr2 = arr1
+    assert arr1.shape == (1, 2, 3)
+    y_true = variable_ke(arr1)
+    y_pred = variable_ke(arr2)
+    x = categorical_crossentropy_ke(y_true, y_pred)
+    x = eval_ke(x)
+    assert x.shape == (1, 2)
+    assert_almost_equal_np(x, [[0, 0]])
+
+
+@name(get_probabilities, "1", globals())
+def _():
+    assert get_probabilities({"a": 100, "b": 200}) == {"a": 100 / 300, "b": 200 / 300}
 
 
 @name(Color.__new__, "1", globals())
@@ -274,7 +374,7 @@ def _():
     m_categories = MagicMock()
     m_categories.__len__.return_value = 4
     x.categories = m_categories
-    assert x.one_hot_container.dtype.name == "float64"
+    assert x.one_hot_container.dtype.name == "float32"
     assert x.one_hot_container.shape == (1, 1, 4)
     with raises(AttributeError):
         x.one_hot_container = None
@@ -291,11 +391,6 @@ def _():
     RGB_ID_SUBTRAHEND[:, :, 3] *= 255 * 256 * 256 + 256 + 1
     rgb_id_container = ones_np((1, 2, 4), dtype=uint32) * 7
     bool_container = ones_np((1, 2, 4), dtype=uint8) * 2
-    root_logger.info(uint32_img_container)
-    root_logger.info(one_hot_container)
-    root_logger.info(RGB_ID_SUBTRAHEND)
-    root_logger.info(rgb_id_container)
-    root_logger.info(bool_container)
     m_uint32_img_container = patch.object(OneHot, "uint32_img_container", new=PropertyMock(return_value=uint32_img_container)).start()
     m_one_hot_container = patch.object(OneHot, "one_hot_container", new=PropertyMock(return_value=one_hot_container)).start()
     m_RGB_ID_SUBTRAHEND = patch.object(OneHot, "RGB_ID_SUBTRAHEND", new=PropertyMock(return_value=RGB_ID_SUBTRAHEND)).start()
@@ -335,6 +430,92 @@ def _():
     assert x.get_encoded(img).dtype.name == "float64"
 
 
+@name(OneHot.get_category_histogram, "", globals())
+def _():
+    one_hot = array_np([[[0.0, 0.0, 1.1], [0.0, 1.0, 1.0]]], dtype=float64)
+    m_get_encoded = patch.object(OneHot, "get_encoded", new=MagicMock(return_value=one_hot)).start()
+    m_categories = MagicMock()
+    m_category1 = MagicMock()
+    m_category2 = MagicMock()
+    m_category3 = MagicMock()
+    m_category1.configure_mock(name="1")
+    m_category2.configure_mock(name="2")
+    m_category3.configure_mock(name="3")
+    m_categories.__iter__.return_value = [m_category1, m_category2, m_category3]
+    x = object.__new__(OneHot)
+    x.categories = m_categories
+    y = x.get_category_histogram(sentinel.a)
+    m_get_encoded.assert_called_once_with(sentinel.a)
+    assert y == {"1": 0, "2": 1, "3": 2}
+
+
+@name(ImgSource.get_rescale_factor, "", globals())
+def _():
+    assert_almost_equal_np(ImgSource.get_rescale_factor(480, 640), 1)
+    assert_almost_equal_np(ImgSource.get_rescale_factor(4800, 640), 1)
+    assert_almost_equal_np(ImgSource.get_rescale_factor(480, 6400), 1)
+    assert_almost_equal_np(ImgSource.get_rescale_factor(48000, 6400), 0.1)
+
+
+@name(ImgSource.get_normalized_img, "", globals())
+def _():
+    x = ImgSource.get_normalized_img(array_np([255, 0]))
+    assert_almost_equal_np(x, array_np([1, 0]))
+
+
+@name(ImgSource.get_cropped_img, "", globals())
+def _():
+    y = zeros((500, 640, 3))
+    y[10] = 1
+    x = ImgSource.get_cropped_img(y)
+    assert x[0, 0, 0] == 1
+
+
+@name(ImgSource.get_an_input, "", globals())
+def _():
+    m_data = patch.object(ImgSource, "data", new=PropertyMock(return_value=MagicMock(shape=(sentinel.nrows, sentinel.ncols, sentinel.ch)))).start()
+    m_get_rescale_factor = patch.object(ImgSource, "get_rescale_factor", new=MagicMock(return_value=sentinel.rescale_factor)).start()
+    m_rescale_skimage = patch("traffic.utils.lane_unet.rescale_skimage", new=MagicMock(return_value=sentinel.rescaled_img)).start()
+    m_array_np = patch("traffic.utils.lane_unet.array_np", new=MagicMock(return_value=MagicMock(shape=(513, 640, 3)))).start()
+    m_get_cropped_img = patch.object(ImgSource, "get_cropped_img", new=MagicMock(return_value=sentinel.cropped_img)).start()
+    m_get_normalized_img = patch.object(ImgSource, "get_normalized_img", new=MagicMock(return_value=sentinel.normalized_img)).start()
+    x = object.__new__(ImgSource)
+    y = x.get_an_input()
+    m_data.assert_called_once_with()
+    m_get_rescale_factor.assert_called_once_with(sentinel.nrows, sentinel.ncols)
+    m_rescale_skimage.assert_called_once_with(m_data(), sentinel.rescale_factor, anti_aliasing=False, preserve_range=True)
+    m_array_np.assert_called_once_with(sentinel.rescaled_img, dtype=uint8)
+    m_get_cropped_img.assert_called_once_with(m_array_np())
+    m_get_normalized_img.assert_called_once_with(sentinel.cropped_img)
+    assert y is sentinel.normalized_img
+
+
+@name(MaskSource.get_resized_shape, "", globals())
+def _():
+    m_get_rescale_factor = patch.object(ImgSource, "get_rescale_factor", new=MagicMock(return_value=0.5)).start()
+    x = object.__new__(MaskSource)
+    y = x.get_resized_shape(100, 101)
+    m_get_rescale_factor.assert_called_once_with(100, 101)
+    assert y == (50, 50, 3)
+
+
+@name(MaskSource.get_an_input, "", globals())
+def _():
+    m_data = patch.object(MaskSource, "data", new=PropertyMock(return_value=MagicMock(shape=(sentinel.nrows, sentinel.ncols, sentinel.ch)))).start()
+    m_get_resized_shape = patch.object(MaskSource, "get_resized_shape", new=MagicMock(return_value=sentinel.resized_shape)).start()
+    m_imresize_scipy = patch("traffic.utils.lane_unet.imresize_scipy", new=MagicMock(return_value=MagicMock(shape=(513, 640, 3)))).start()
+    m_get_cropped_img = patch.object(ImgSource, "get_cropped_img", new=MagicMock(return_value=sentinel.cropped_img)).start()
+    x = object.__new__(MaskSource)
+    m_one_hot = MagicMock()
+    m_one_hot.get_encoded.return_value = zeros((480, 640, 30), dtype=float32)
+    y = x.get_an_input(m_one_hot)
+    m_get_resized_shape.assert_called_once_with(sentinel.nrows, sentinel.ncols)
+    m_imresize_scipy.assert_called_once_with(m_data(), sentinel.resized_shape, interp="nearest")
+    m_get_cropped_img.assert_called_once_with(m_imresize_scipy())
+    m_one_hot.get_encoded.assert_called_once_with(sentinel.cropped_img)
+    assert y.shape == (480 * 640, 30) and y.dtype.name == "float32"
+
+
 @name(LaneDB.create_categories, "colors", globals())
 def _():
     LaneDB.create_categories()
@@ -355,91 +536,39 @@ def _():
 @name(LaneDB._get_all_path, "", globals())
 def _():
     img_paths, mask_paths = LaneDB._get_all_path()
-    assert len(img_paths) == 113653 == len(mask_paths)
+    assert len(img_paths) == 113652 == len(mask_paths)
     assert EXAMPLE_IMG_PATH in img_paths and EXAMPLE_MASK_PATH in mask_paths
 
 
 @name(LaneDB._get_train_val_test_paths, "1", globals())
 def _():
     train_img_paths, train_mask_paths, val_img_paths, val_mask_paths, test_img_paths, test_mask_paths = LaneDB._get_train_val_test_paths()
-    assert (len(train_img_paths) + len(val_img_paths) + len(test_img_paths)) == 113653 == (len(train_mask_paths) + len(val_mask_paths) + len(test_mask_paths))
+    assert (len(train_img_paths) + len(val_img_paths) + len(test_img_paths)) == 700 == (len(train_mask_paths) + len(val_mask_paths) + len(test_mask_paths))
 
 
-@name(LaneDB._random_example_id.fget, "1", globals())
+@name(LaneDB.__init__, "", globals())
 def _():
-    m_randrange = patch("traffic.utils.lane_unet.randrange", new=MagicMock(return_value=0)).start()
+    m_ImgSource = patch("traffic.utils.lane_unet.ImgSource", new=MagicMock()).start()
+    m_mask_source1 = MagicMock(category_probabilities={"Hatter": 2})
+    m_mask_source2 = MagicMock(category_probabilities={"Hatter": 1})
+    m_MaskSource = patch("traffic.utils.lane_unet.MaskSource", new=MagicMock(side_effect=[m_mask_source1, m_mask_source2])).start()
+    m_IMSourcePair1 = MagicMock(mask_source=m_mask_source1)
+    m_IMSourcePair2 = MagicMock(mask_source=m_mask_source2)
+    m_IMSourcePair = patch("traffic.utils.lane_unet.IMSourcePair", new=MagicMock(side_effect=[m_IMSourcePair1, m_IMSourcePair2])).start()
+    x = LaneDB([sentinel.img_path1, sentinel.img_path2], [sentinel.mask_path1, sentinel.mask_path2])
+    assert m_ImgSource.mock_calls == [call_mock(sentinel.img_path1), call_mock(sentinel.img_path2)]
+    assert m_MaskSource.mock_calls == [call_mock(sentinel.mask_path1), call_mock(sentinel.mask_path2)]
+    assert m_IMSourcePair.mock_calls == [call_mock(m_ImgSource(), m_mask_source1), call_mock(m_ImgSource(), m_mask_source2)]
+    assert x.image_and_mask_source_pairs[1] == m_IMSourcePair1
+
+
+@name(LaneDB._random_source_id.fget, "1", globals())
+def _():
+    m_randrange = patch("traffic.utils.lane_unet.randrange", new=MagicMock(return_value=sentinel.random_int)).start()
     x = object.__new__(LaneDB)
-    x._img_paths = [None, None]
-    assert x._random_example_id == 0
+    x.image_and_mask_source_pairs = [None, None]
+    assert x._random_source_id == sentinel.random_int
     m_randrange.assert_called_once_with(2)
-
-
-@name(LaneDB._get_example_paths, "1", globals())
-def _():
-    x = object.__new__(LaneDB)
-    x._img_paths = [1, 2]
-    x._mask_paths = [3, 4]
-    assert x._get_example_paths(0) == (1, 3)
-
-
-@name(LaneDB._load_example, "1", globals())
-def _():
-    x = object.__new__(LaneDB)
-    m__get_example_paths = patch.object(LaneDB, "_get_example_paths", new=MagicMock(return_value=[EXAMPLE_IMG_PATH, EXAMPLE_MASK_PATH])).start()
-    img, mask = x._load_example(0)
-    m__get_example_paths.assert_called_once_with(0)
-    assert type(img) is ndarray and type(mask) is ndarray
-    assert img.dtype.name == mask.dtype.name == "uint8"
-    assert img.shape == mask.shape == (2710, 3384, 3)
-    assert img.max() <= 255 and img.min() >= 0 and img.mean() > 1
-    assert mask.max() <= 255 and mask.min() >= 0 and mask.mean() > 1
-
-
-@name(LaneDB._get_small_example, "1", globals())
-def _():
-    x = object.__new__(LaneDB)
-    m__load_example = patch.object(
-        LaneDB, "_load_example", new=MagicMock(return_value=[ones_np((2710, 3384, 3), dtype=uint8) * 9, ones_np((2710, 3384, 3), dtype=uint8) * 9])
-    ).start()
-    img, mask = x._get_small_example(0)
-    m__load_example.assert_called_once_with(0)
-    assert type(img) is ndarray and type(mask) is ndarray
-    assert img.shape == mask.shape == (513, 640, 3)
-    assert img.max() <= 255 and img.min() >= 0 and img.mean() > 1
-    assert mask.max() <= 255 and mask.min() >= 0 and mask.mean() > 1
-    assert img.dtype.name == mask.dtype.name == "uint8"
-
-
-@name(LaneDB._get_small_cropped_example, "1", globals())
-def _():
-    x = object.__new__(LaneDB)
-    m__get_small_example = patch.object(
-        LaneDB, "_get_small_example", new=MagicMock(return_value=[ones_np((513, 640, 3), dtype=uint8) * 9, ones_np((513, 640, 3), dtype=uint8) * 9])
-    ).start()
-    img, mask = x._get_small_cropped_example(0)
-    m__get_small_example.assert_called_once_with(0)
-    assert type(img) is ndarray and type(mask) is ndarray
-    assert img.shape == mask.shape == (480, 640, 3)
-    assert img.max() <= 255 and img.min() >= 0 and img.mean() > 1
-    assert mask.max() <= 255 and mask.min() >= 0 and mask.mean() > 1
-    assert img.dtype.name == mask.dtype.name == "uint8"
-
-
-@name(LaneDB.get_train_input, "1", globals())
-def _():
-    x = object.__new__(LaneDB)
-    m__get_small_cropped_example = patch.object(
-        LaneDB, "_get_small_cropped_example", new=MagicMock(return_value=[ones_np((480, 640, 3), dtype=uint8) * 9, sentinel.a])
-    ).start()
-    m_one_hot_coder = patch.object(LaneDB, "one_hot_coder", new=MagicMock()).start()
-    m_one_hot_coder.get_encoded.return_value = sentinel.b
-    img, one_hot = x.get_train_input(0)
-    m__get_small_cropped_example.assert_called_once_with(0)
-    m_one_hot_coder.get_encoded.assert_called_once_with(sentinel.a)
-    assert type(img) is ndarray and one_hot is sentinel.b
-    assert img.shape == (480, 640, 3)
-    assert img.max() <= 1 and img.min() >= 0 and (0 < img.mean() < 1)
-    assert img.dtype.name == "float64"
 
 
 @name(Unet.train, "1", globals())
@@ -469,29 +598,13 @@ def _():
 def _():
     x = object.__new__(Unet)
     x.hdf5_path = "/traffic/Unet.hdf5"
-    grayscale_array = ones_np((480, 640, 3), dtype=uint8) * 111
-    mask = x.get_prediction(grayscale_array)
-    summed_mask = sum_np(mask, axis=2)
+    img = ones_np((480, 640, 3), dtype=uint8) * 111
+    y = x.get_prediction(img)
+    summed_mask = sum_np(y, axis=2)
     assert summed_mask.shape == (480, 640)
-    assert mask.dtype.name == "float32"
-    assert mask.shape[0] == 480 and mask.shape[1] == 640 and len(mask.shape) == 3
-    assert mask.shape[2] > 3
+    assert y.dtype.name == "float32"
+    assert y.shape[0] == 480 and y.shape[1] == 640 and len(y.shape) == 3
+    assert y.shape[2] >= 2
     assert_almost_equal_np(summed_mask, ones_np((480, 640), dtype=uint8), decimal=6)
     # imshow_mat(mask[:, :, :3])
     # show()
-
-
-## @name(Unet.structure.fget, "proxy", globals())
-# def _():
-#     u = Unet(1)
-#     u._structure = 1
-#     structure = u.structure
-#     assert structure == 1
-#
-#
-# @name(Unet.structure.fget, "1", globals())
-# def _():
-#     u = Unet(1)
-#     model = u.structure
-#     assert type(model) is Model_ke
-#

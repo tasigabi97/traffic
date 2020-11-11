@@ -1,31 +1,28 @@
 from traffic.utils.time import *
-from traffic.imports import (
-    check_output,
-    CalledProcessError,
-    contextmanager,
-    Popen,
-    signature,
-    any_np,
-    Rectangle,
-    Polygon,
-    uint8,
-    uint32,
-    zeros,
-    find_contours,
-    fliplr,
-    show,
-    Tuple,
-    Array_imageio,
-    ndarray,
-    List,
-    Axes,
-    Iterable_type,
-    wraps,
-    Callable,
-)
+from traffic.imports import *
 from traffic.logging import root_logger
 from traffic.consts import SSID_VODAFONE, IP_VODAFONE, DROIDCAM, DROIDCAM_PORT, PRIVATE
 from mrcnn.visualize import random_colors, apply_mask
+
+
+def load_rgb_array(path: str) -> ndarray:
+    try:
+        img = imread_skimage(path)
+    except Exception as e:
+        root_logger.warning(path)
+        raise e
+    img = array_np(img, dtype=uint8)
+    if img.shape[-1] == 3:
+        return img
+    elif img.shape[-1] == 4:
+        return img[..., :3]
+    else:
+        raise IndexError(img.shape)
+
+
+def show_array(array: ndarray):
+    imshow_mat(array)
+    show()
 
 
 def virtual_proxy_property(func: Callable) -> property:
@@ -40,6 +37,49 @@ def virtual_proxy_property(func: Callable) -> property:
         return ret
 
     return new_func
+
+
+class NNInputSource:
+    def __init__(self, path: str):
+        self.path = path
+
+    @property
+    def data(self) -> ndarray:
+        return load_rgb_array(self.path)
+
+    def visualize_data(self):
+        show_array(self.data)
+
+    def get_an_input(self, *args, **kwargs) -> ndarray:
+        raise NotImplemented()
+
+    def visualize_an_input(self, *args, **kwargs):
+        show_array(self.get_an_input(*args, **kwargs))
+
+    @property
+    def attributes_path(self) -> str:
+        return self.path + ".json"
+
+    def get_calculated_attributes(self):
+        raise NotImplemented()
+
+    def save_attributes_to_json(self, attributes: dict):
+        with open(self.attributes_path, "w") as outfile:
+            dump_json(attributes, outfile)
+        # root_logger.info('Saved {} to {}'.format(attributes,self.attributes_path))
+
+    def get_attributes_from_json(self) -> dict:
+        with open(self.attributes_path) as json_file:
+            attributes = load_json(json_file)
+        # root_logger.info('Loaded {} from {}'.format(attributes,self.attributes_path))
+        return attributes
+
+    @property
+    def attributes(self) -> dict:
+        if not exists(self.attributes_path):
+            attributes = self.get_calculated_attributes()
+            self.save_attributes_to_json(attributes)
+        return self.get_attributes_from_json()
 
 
 def set_axes(

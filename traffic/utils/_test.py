@@ -1,13 +1,18 @@
 from traffic.testing import name, absolute_name
-from traffic.utils import get_ssid, webcam_server, Singleton, virtual_proxy_property, SingletonByIdMeta
+from traffic.utils import get_ssid, webcam_server, Singleton, virtual_proxy_property, SingletonByIdMeta, load_rgb_array, NNInputSource
 from traffic.consts import SSID_MONOR, SSID_VODAFONE, DROIDCAM, SPACE
-from traffic.imports import patch, check_output, Iterable_abc, Iterable_type, raises
+from traffic.imports import *
 from traffic.logging import root_logger
 from traffic.utils.lane_mrcnn import LaneDataset, LaneConfig
+from traffic.utils.lane_unet_test import EXAMPLE_IMG_PATH, EXAMPLE_MASK_PATH
 
 
 def setup_function(function):
     Singleton._instances = dict()
+
+
+def teardown_function(function):
+    patch.stopall()
 
 
 def is_droidcam_running():
@@ -16,6 +21,97 @@ def is_droidcam_running():
     root_logger.info(out)
     root_logger.info(ret)
     return ret
+
+
+@name(load_rgb_array, "1", globals())
+def _():
+    for i in [EXAMPLE_IMG_PATH, EXAMPLE_MASK_PATH]:
+        x = load_rgb_array(i)
+        assert type(x) is ndarray
+        assert x.dtype.name == "uint8"
+        assert x.shape == (2710, 3384, 3)
+        assert x.max() <= 255 and x.min() >= 0 and x.mean() > 1
+
+
+@name(NNInputSource.__init__, "1", globals())
+def _():
+    x = object.__new__(NNInputSource)
+    x.__init__(sentinel.a)
+    assert x.path is sentinel.a
+
+
+@name(NNInputSource.data.fget, "1", globals())
+def _():
+    m_load_rgb_array = patch("traffic.utils.load_rgb_array", new=MagicMock(return_value=sentinel.b)).start()
+    x = object.__new__(NNInputSource)
+    x.path = sentinel.a
+    y = x.data
+    m_load_rgb_array.assert_called_once_with(sentinel.a)
+    assert y is sentinel.b
+
+
+@name(NNInputSource.attributes_path.fget, "1", globals())
+def _():
+    x = object.__new__(NNInputSource)
+    x.path = "a.png"
+    y = x.attributes_path
+    assert y == "a.png.json"
+
+
+@name(NNInputSource.save_attributes_to_json, "1", globals())
+def _():
+    m_attributes_path = patch.object(NNInputSource, "attributes_path", new=PropertyMock(return_value=sentinel.a)).start()
+    m_open = patch("traffic.utils.open", new=mock_open()).start()
+    m_dump_json = patch("traffic.utils.dump_json", new=MagicMock()).start()
+    x = object.__new__(NNInputSource)
+    y = x.save_attributes_to_json(sentinel.b)
+    m_open.assert_called_once_with(sentinel.a, "w")
+    m_dump_json.assert_called_once_with(sentinel.b, m_open())
+    assert y is None
+
+
+@name(NNInputSource.get_attributes_from_json, "1", globals())
+def _():
+    m_attributes_path = patch.object(NNInputSource, "attributes_path", new=PropertyMock(return_value=sentinel.a)).start()
+    m_open = patch("traffic.utils.open", new=mock_open()).start()
+    m_load_json = patch("traffic.utils.load_json", new=MagicMock(return_value=sentinel.b)).start()
+    x = object.__new__(NNInputSource)
+    y = x.get_attributes_from_json()
+    m_open.assert_called_once_with(sentinel.a)
+    m_load_json.assert_called_once_with(m_open())
+    assert y is sentinel.b
+
+
+@name(NNInputSource.attributes.fget, "not saved previousli", globals())
+def _():
+    m_attributes_path = patch.object(NNInputSource, "attributes_path", new=PropertyMock(return_value=sentinel.a)).start()
+    m_get_calculated_attributes = patch.object(NNInputSource, "get_calculated_attributes", new=MagicMock(return_value=sentinel.a)).start()
+    m_save_attributes_to_json = patch.object(NNInputSource, "save_attributes_to_json", new=MagicMock()).start()
+    m_get_attributes_from_json = patch.object(NNInputSource, "get_attributes_from_json", new=MagicMock(return_value=sentinel.b)).start()
+    m_exists = patch("traffic.utils.exists", new=MagicMock(return_value=False)).start()
+    x = object.__new__(NNInputSource)
+    y = x.attributes
+    m_exists.assert_called_once_with(sentinel.a)
+    m_get_calculated_attributes.assert_called_once_with()
+    m_save_attributes_to_json.assert_called_once_with(sentinel.a)
+    m_get_attributes_from_json.assert_called_once_with()
+    assert y is sentinel.b
+
+
+@name(NNInputSource.attributes.fget, "saved previousli", globals())
+def _():
+    m_attributes_path = patch.object(NNInputSource, "attributes_path", new=PropertyMock(return_value=sentinel.a)).start()
+    m_get_calculated_attributes = patch.object(NNInputSource, "get_calculated_attributes", new=MagicMock(return_value=sentinel.a)).start()
+    m_save_attributes_to_json = patch.object(NNInputSource, "save_attributes_to_json", new=MagicMock()).start()
+    m_get_attributes_from_json = patch.object(NNInputSource, "get_attributes_from_json", new=MagicMock(return_value=sentinel.b)).start()
+    m_exists = patch("traffic.utils.exists", new=MagicMock(return_value=True)).start()
+    x = object.__new__(NNInputSource)
+    y = x.attributes
+    m_exists.assert_called_once_with(sentinel.a)
+    m_get_calculated_attributes.assert_not_called()
+    m_save_attributes_to_json.assert_not_called()
+    m_get_attributes_from_json.assert_called_once_with()
+    assert y is sentinel.b
 
 
 @name(SingletonByIdMeta.__init__, "1", globals())
