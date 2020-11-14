@@ -326,9 +326,9 @@ class Unet(Singleton):
         normalized_img = ImgSource.get_normalized_img(rgb_array)
         input_batch = normalized_img[None, :, :, :]
         output_batch = self.model.predict_on_batch(input_batch)
-        distribution_list = output_batch[0]
-        distribution_matrix = reshape_np(distribution_list, (CAMERA_ROWS, CAMERA_COLS, -1))
-        return distribution_matrix
+        probability_list = output_batch[0]
+        probability_matrix = reshape_np(probability_list, (CAMERA_ROWS, CAMERA_COLS))
+        return probability_matrix
 
     def train(
         self,
@@ -346,11 +346,11 @@ class Unet(Singleton):
         self.RLRFactor = RLRFactor  # 0.2
         self.batch_size, self.steps_per_epoch, self.validation_steps = batch_size, steps_per_epoch, validation_steps
         self.max_epochs = 999
-        self.metrics = ["categorical_accuracy"]
+        self.metrics = ["binary_accuracy"]
         self.monitor = "loss"
         self.verbose = 1
         # todo
-        self.structure.compile(optimizer=Adam_ke(), loss=categorical_crossentropy_ke, metrics=self.metrics, sample_weight_mode="temporal")
+        self.structure.compile(optimizer=Adam_ke(), loss=binary_crossentropy_tf, metrics=self.metrics, sample_weight_mode="temporal")
         history = self.structure.fit_generator(
             generator=self.train_data,
             steps_per_epoch=self.steps_per_epoch,
@@ -364,26 +364,43 @@ class Unet(Singleton):
 
     @classmethod
     def calculate_weight(cls, probability: float) -> float:
-        ret = 1 / logarithm(probability + 1.12)
-        root_logger.debug("{}->{}".format(probability, ret))
-        return ret
+        return 1 if probability < 0.5 else 0
 
     def batch_generator(self, DB: LaneDB):  # this generetor should instentiate onehot coders
         img_array_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, 3), dtype=float32)
         one_hot_container = zeros((self.batch_size, CAMERA_ROWS * CAMERA_COLS, len(Category)), dtype=float32)
+        mask_container = zeros((self.batch_size, CAMERA_ROWS * CAMERA_COLS, 1), dtype=float32)
         weight_container = zeros((self.batch_size, CAMERA_ROWS * CAMERA_COLS), dtype=float32)
+        dilated_weight_container = zeros((CAMERA_ROWS, CAMERA_COLS), dtype=float32)
         index_container = zeros((CAMERA_ROWS * CAMERA_COLS,), dtype=uint8)
         category_weight_container = zeros((len(Category),), dtype=float32)
+        target_i = None
+        for category_i, category in enumerate(DB.one_hot_coder.categories):
+            if category.name != "Hatter":
+                target_i = category_i
+                break
         while True:
             for batch_i in range(self.batch_size):
                 img_source, mask_source = DB.get_sources(0)
                 img_array_container[batch_i] = img_source.get_an_input()
                 one_hot_container[batch_i] = mask_source.get_an_input(DB.one_hot_coder)
+                mask_container[batch_i, :, 0] = one_hot_container[batch_i, :, target_i]
                 argmax_np(one_hot_container[batch_i], axis=-1, out=index_container)
                 category_probabilities = mask_source.category_probabilities
                 for category_i, category in enumerate(DB.one_hot_coder.categories):
                     category_weight_container[category_i] = self.calculate_weight(category_probabilities[category.name])
-                weight_container[batch_i] = category_weight_container[index_container]
+                original_weight_matrix = reshape_np(category_weight_container[index_container], (CAMERA_ROWS, CAMERA_COLS))
+                treshold = sum_np(original_weight_matrix) * 2
+                for size in [(3, 3), (4, 4), (5, 5), (6, 6)]:
+                    grey_dilation(input=original_weight_matrix, output=dilated_weight_container, size=size, mode="constant")
+                    if sum_np(dilated_weight_container) > treshold:
+                        break
+                if False:
+                    show_array(original_weight_matrix)
+                    show_array(dilated_weight_container)
+                    root_logger.info(sum_np(treshold))
+                    root_logger.info(sum_np(dilated_weight_container))
+                weight_container[batch_i] = reshape_np(dilated_weight_container, (CAMERA_ROWS * CAMERA_COLS))
                 root_logger.debug(category_weight_container)
                 root_logger.debug(one_hot_container[batch_i])
                 root_logger.debug(sum_np(one_hot_container[batch_i, :, 1]))
@@ -391,44 +408,69 @@ class Unet(Singleton):
                 root_logger.debug(weight_container[batch_i])
                 root_logger.debug(sum_np(index_container))
                 # https://scikit-learn.org/stable/modules/generated/sklearn.utils.class_weight.compute_class_weight.html
-            yield img_array_container.copy(), one_hot_container.copy(), weight_container.copy()
+            yield img_array_container.copy(), mask_container.copy(), weight_container.copy()
 
     def get_output_layer(self, input_layer: int) -> int:
+        def c(layers, filters, kernel_size, activation="relu"):
+            layer = concatenate_ke(layers) if type(layers) is list else layers
+            return Conv2D_ke(filters=filters, kernel_size=kernel_size, strides=1, activation=activation)(layer)
+
+        def t(layers, filters, kernel_size, activation="relu", strides=(1, 1)):
+            layer = concatenate_ke(layers) if type(layers) is list else layers
+            return Conv2DTranspose_ke(filters=filters, kernel_size=kernel_size, strides=strides, activation=activation)(layer)
+
+        def p(layer):
+            return MaxPool2D_ke((2, 2))(layer)
+
         filters = [16, 16, 16]
         kernel_sizes = [16, 16, 16]
         activation = "relu"
-        conv_0_l = Conv2D_ke(filters=filters[0], kernel_size=kernel_sizes[0], activation=activation)(input_layer)
-        conv_1_l = Conv2D_ke(filters=filters[1], kernel_size=kernel_sizes[1], activation=activation)(conv_0_l)
-        conv_2_l = Conv2D_ke(filters=filters[2], kernel_size=kernel_sizes[2], activation=activation)(conv_1_l)
-        conv_t_2_l = Conv2DTranspose_ke(
-            filters=filters[2],
-            kernel_size=kernel_sizes[2],
-            activation=activation,
-        )(conv_2_l)
-        conv_t_1_l = Conv2DTranspose_ke(
-            filters=filters[1],
-            kernel_size=kernel_sizes[1],
-            activation=activation,
-        )(conv_t_2_l)
+        c_478_638 = c(input_layer, 16, 3)
+        c_476_636 = c(c_478_638, 16, 3)
+        c_474_634 = c(c_476_636, 16, 3)
+        p_237_317 = p(c_474_634)
+        c_235_315 = c(p_237_317, 32, 3)
+        c_233_313 = c(c_235_315, 32, 3)
+        c_230_310 = c(c_233_313, 32, 4)
+        p_115_155 = p(c_230_310)
+        c_113_153 = c(p_115_155, 64, 3)
+        c_111_151 = c(c_113_153, 64, 3)
+        c_108_148 = c(c_111_151, 64, 4)
+        p_54_74 = p(c_108_148)
+        c_52_72 = c(p_54_74, 128, 3)
+        c_50_70 = c(c_52_72, 128, 3)
+        c_48_68 = c(c_50_70, 128, 3)
+        p_24_34 = p(c_48_68)
+        c_22_32 = c(p_24_34, 256, 2)
+        t_48_68 = t(c_22_32, 128, 4, strides=(2, 2))
+        t_50_70 = t([t_48_68, c_48_68], 128, 3)
+        t_52_72 = t([t_50_70, c_50_70], 128, 3)
+        t_54_74 = t([t_52_72, c_52_72], 128, 3)
+        t_108_148 = t([t_54_74, p_54_74], 64, 2, strides=(2, 2))
+        t_111_151 = t([t_108_148, c_108_148], 64, 4)
+        t_113_153 = t([t_111_151, c_111_151], 64, 3)
+        t_115_155 = t([t_113_153, c_113_153], 64, 3)
+        t_230_310 = t([t_115_155, p_115_155], 32, 2, strides=(2, 2))
+        t_233_313 = t([t_230_310, c_230_310], 32, 4)
+        t_235_315 = t([t_233_313, c_233_313], 32, 3)
+        t_237_317 = t([t_235_315, c_235_315], 32, 3)
+        t_474_634 = t([t_237_317, p_237_317], 16, 2, strides=(2, 2))
+        t_476_636 = t([t_474_634, c_474_634], 16, 3)
+        t_478_638 = t([t_476_636, c_476_636], 16, 3)
+        t_480_640 = t([t_478_638, c_478_638], 16, 3)
 
-        conv_t_0_l = Conv2DTranspose_ke(
-            filters=filters[0],
-            kernel_size=kernel_sizes[0],
-            activation=activation,
-        )(conv_t_1_l)
-        output_l = Conv2D_ke(
-            filters=len(Category),
-            kernel_size=3,
-            padding="same",
-            activation="softmax",
-        )(conv_t_0_l)
-        return output_l
+        if False:
+            model = Model_ke(input_layer, x)
+            plot_model_ke(model, show_shapes=True, to_file=self.png_path)
+            input(5555555555555)
+
+        return c(t_480_640, 1, 1, "sigmoid")
 
     @virtual_proxy_property
     def structure(self) -> Model_ke:
         input_l = Input_ke(shape=(CAMERA_ROWS, CAMERA_COLS, 3))
         output_l = self.get_output_layer(input_l)
-        output_l = Reshape_ke((CAMERA_ROWS * CAMERA_COLS, len(Category)))(output_l)
+        output_l = Reshape_ke((CAMERA_ROWS * CAMERA_COLS, 1))(output_l)
         model = Model_ke(input_l, output_l)
         plot_model_ke(model, show_shapes=True, to_file=self.png_path)
         return model

@@ -185,6 +185,45 @@ def _():
     assert_almost_equal_np(x, [[0, 0]])
 
 
+@name(binary_crossentropy_ke, "1d same", globals())
+def _():
+    arr1 = array_np([0])
+    arr2 = arr1
+    assert arr1.shape == (1,)
+    y_true = variable_ke(arr1)
+    y_pred = variable_ke(arr2)
+    x = binary_crossentropy_ke(y_true, y_pred)
+    x = eval_ke(x)
+    assert x.shape == ()
+    assert_almost_equal_np(x, 0)
+
+
+@name(binary_crossentropy_ke, "2d same", globals())
+def _():
+    arr1 = array_np([[0, 1, 0]])
+    arr2 = arr1
+    assert arr1.shape == (1, 3)
+    y_true = variable_ke(arr1)
+    y_pred = variable_ke(arr2)
+    x = binary_crossentropy_ke(y_true, y_pred)
+    x = eval_ke(x)
+    assert x.shape == (1,)
+    assert_almost_equal_np(x, 0)
+
+
+@name(binary_crossentropy_tf, "tf 2d same", globals())
+def _():
+    arr1 = array_np([[0, 1, 0]])
+    arr2 = arr1
+    assert arr1.shape == (1, 3)
+    y_true = variable_ke(arr1)
+    y_pred = variable_ke(arr2)
+    x = binary_crossentropy_tf(y_true, y_pred)
+    x = eval_ke(x)
+    assert x.shape == (1, 3)
+    assert_almost_equal_np(x, 0)
+
+
 @name(get_probabilities, "1", globals())
 def _():
     assert get_probabilities({"a": 100, "b": 200}) == {"a": 100 / 300, "b": 200 / 300}
@@ -600,11 +639,6 @@ def _():
     x.hdf5_path = "/traffic/Unet.hdf5"
     img = ones_np((480, 640, 3), dtype=uint8) * 111
     y = x.get_prediction(img)
-    summed_mask = sum_np(y, axis=2)
-    assert summed_mask.shape == (480, 640)
+    assert y.shape == (480, 640)
     assert y.dtype.name == "float32"
-    assert y.shape[0] == 480 and y.shape[1] == 640 and len(y.shape) == 3
-    assert y.shape[2] >= 2
-    assert_almost_equal_np(summed_mask, ones_np((480, 640), dtype=uint8), decimal=6)
-    # imshow_mat(mask[:, :, :3])
-    # show()
+    assert max_np(y) <= 1
