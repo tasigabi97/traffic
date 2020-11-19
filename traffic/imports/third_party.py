@@ -1,4 +1,4 @@
-import cv2, imageio, numpy, pytest, scipy, skimage, termcolor, keras
+import cv2, imageio, numpy, pytest, scipy, skimage, termcolor, keras, tensorflow
 from matplotlib.pyplot import subplots, show, ion, cla
 from matplotlib.pyplot import imshow as imshow_mat
 from matplotlib.patches import Rectangle, Polygon
@@ -71,8 +71,16 @@ zeros = numpy.zeros
 categorical_crossentropy_ke = keras.losses.categorical_crossentropy
 binary_crossentropy_ke = keras.losses.binary_crossentropy
 binary_crossentropy_tf = keras.backend.binary_crossentropy
+sum_ke = keras.backend.sum
+print_tensor = keras.backend.print_tensor
+shape_tf = tensorflow.shape
+Print_tf = tensorflow.Print
 variable_ke = keras.backend.variable
 eval_ke = keras.backend.eval
 grey_dilation = scipy.ndimage.morphology.grey_dilation
 concatenate_ke = keras.layers.concatenate
 MaxPool2D_ke = keras.layers.MaxPool2D
+multiply_tf = tensorflow.math.multiply
+mean_ke = keras.backend.mean
+TensorBoard_ke = keras.callbacks.TensorBoard
+Variable_tf = tensorflow.Variable

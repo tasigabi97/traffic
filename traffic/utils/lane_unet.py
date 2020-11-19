@@ -173,15 +173,13 @@ class MaskSource(NNInputSource):
         assert resized_img.shape == (513, 640, 3)
         cropped_img = ImgSource.get_cropped_img(resized_img)
         one_hot = one_hot_coder.get_encoded(cropped_img)
-        one_hot = reshape_np(one_hot, (CAMERA_ROWS * CAMERA_COLS, -1))
         return one_hot
 
     def visualize_an_input(self, one_hot_coder: OneHot):
         an_input = self.get_an_input(one_hot_coder)
-        reshaped_input = reshape_np(an_input, (CAMERA_ROWS, CAMERA_COLS, -1))
-        root_logger.info(reshaped_input.shape)
-        for i in range(reshaped_input.shape[-1]):
-            show_array(reshaped_input[:, :, i])
+        root_logger.info(an_input.shape)
+        for i in range(an_input.shape[-1]):
+            show_array(an_input[:, :, i])
 
 
 class IMSourcePair:
@@ -285,6 +283,7 @@ class LaneDB:
     def __init__(self, img_paths, mask_paths):
         self.image_and_mask_source_pairs = [IMSourcePair(ImgSource(img_path), MaskSource(mask_path)) for img_path, mask_path in zip(img_paths, mask_paths)]
         self.image_and_mask_source_pairs.sort(key=lambda image_and_mask_source_pair: image_and_mask_source_pair.mask_source.category_probabilities["Hatter"])
+        # todo sorted indexes by categories
 
     @virtual_proxy_property  # todo elvileg nem kell
     def category_probabilities(self) -> dict:
@@ -300,13 +299,15 @@ class LaneDB:
     def one_hot_coder(self) -> OneHot:
         return OneHot(CAMERA_ROWS, CAMERA_COLS, Category)
 
-    @property
+    @property  # todo elvileg nem kell
     def _random_source_id(self):
         return randrange(len(self.image_and_mask_source_pairs))
 
+    # todo floattal és categoryval
     def get_sources(self, id: int) -> Tuple[ImgSource, MaskSource]:
         return self.image_and_mask_source_pairs[id].img_source, self.image_and_mask_source_pairs[id].mask_source
 
+    # todo elvileg nem kell
     @property
     def random_sources(self):
         return self.get_sources(self._random_source_id)
@@ -325,10 +326,32 @@ class Unet(Singleton):
     def get_prediction(self, rgb_array: ndarray) -> ndarray:
         normalized_img = ImgSource.get_normalized_img(rgb_array)
         input_batch = normalized_img[None, :, :, :]
-        output_batch = self.model.predict_on_batch(input_batch)
-        probability_list = output_batch[0]
-        probability_matrix = reshape_np(probability_list, (CAMERA_ROWS, CAMERA_COLS))
+        predicted_batch = self.model.predict_on_batch(input_batch)
+        probability_matrix = predicted_batch[0, :, :, 0]
         return probability_matrix
+
+    def visualize_prediction(self):
+        img_source, mask_source = self.train_DB.get_sources(0)
+        expected_one_hot = mask_source.get_an_input(self.train_DB.one_hot_coder)
+        target_i = None
+        for category_i, category in enumerate(self.train_DB.one_hot_coder.categories):
+            if category.name != "Hatter":
+                target_i = category_i
+                break
+        expected_mask = expected_one_hot[:, :, target_i]
+        input_img = img_source.get_an_input()
+        predicted_mask = self.get_prediction(input_img * 255)
+        root_logger.info(predicted_mask.shape)
+        assert predicted_mask.shape == expected_mask.shape == (480, 640)
+        canvas = zeros((960, 640, 3))
+        canvas[:480] = input_img
+        canvas[480:] = input_img
+        canvas[:, :, 0] = 0
+        for category_i, category in enumerate(self.train_DB.one_hot_coder.categories):
+            if category.name != "Hatter":
+                canvas[:480, :, 0] += expected_mask
+                canvas[480:, :, 0] += predicted_mask
+        show_array(canvas)
 
     def train(
         self,
@@ -349,12 +372,11 @@ class Unet(Singleton):
         self.metrics = ["binary_accuracy"]
         self.monitor = "loss"
         self.verbose = 1
-        # todo
-        self.structure.compile(optimizer=Adam_ke(), loss=binary_crossentropy_tf, metrics=self.metrics, sample_weight_mode="temporal")
+        self.structure.compile(optimizer=Adam_ke(), loss=self.loss, metrics=self.metrics)
         history = self.structure.fit_generator(
             generator=self.train_data,
             steps_per_epoch=self.steps_per_epoch,
-            verbose=1,
+            verbose=self.verbose,
             callbacks=self.callbacks,
             epochs=self.max_epochs,
             validation_data=self.validation_data,
@@ -362,55 +384,64 @@ class Unet(Singleton):
         )
         return history
 
+    @staticmethod
+    def loss(y_true, y_pred):
+        DEBUG = False
+
+        def p(tensor, msg: str):
+            if DEBUG:
+                tensor_shape = shape_tf(tensor)
+                return Print_tf(tensor, [tensor_shape, tensor], msg, summarize=20)
+            else:
+                return tensor
+
+        y_true = p(y_true, "y_true 1.")
+        y_pred = p(y_pred, "y_pred 1.")
+        bce = binary_crossentropy_tf(target=y_true, output=y_pred)
+        bce = p(bce, "bce 1.")
+        bce_mask = MaxPool2D_ke(pool_size=8, strides=1, padding="same")(y_true)
+        bce_mask = p(bce_mask, "bce_mask 1.")
+        relevant_bce = multiply_tf(bce, bce_mask)
+        relevant_bce = p(relevant_bce, "relevant_bce 1.")
+        sum_bce = sum_ke(relevant_bce)
+        sum_bce = p(sum_bce, "sum_bce 1.")
+        return sum_bce
+
     @classmethod
     def calculate_weight(cls, probability: float) -> float:
         return 1 if probability < 0.5 else 0
 
     def batch_generator(self, DB: LaneDB):  # this generetor should instentiate onehot coders
         img_array_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, 3), dtype=float32)
-        one_hot_container = zeros((self.batch_size, CAMERA_ROWS * CAMERA_COLS, len(Category)), dtype=float32)
-        mask_container = zeros((self.batch_size, CAMERA_ROWS * CAMERA_COLS, 1), dtype=float32)
-        weight_container = zeros((self.batch_size, CAMERA_ROWS * CAMERA_COLS), dtype=float32)
-        dilated_weight_container = zeros((CAMERA_ROWS, CAMERA_COLS), dtype=float32)
-        index_container = zeros((CAMERA_ROWS * CAMERA_COLS,), dtype=uint8)
-        category_weight_container = zeros((len(Category),), dtype=float32)
+        mask_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, 1), dtype=float32)
         target_i = None
         for category_i, category in enumerate(DB.one_hot_coder.categories):
             if category.name != "Hatter":
                 target_i = category_i
                 break
         while True:
-            for batch_i in range(self.batch_size):
-                img_source, mask_source = DB.get_sources(0)
-                img_array_container[batch_i] = img_source.get_an_input()
-                one_hot_container[batch_i] = mask_source.get_an_input(DB.one_hot_coder)
-                mask_container[batch_i, :, 0] = one_hot_container[batch_i, :, target_i]
-                argmax_np(one_hot_container[batch_i], axis=-1, out=index_container)
-                category_probabilities = mask_source.category_probabilities
-                for category_i, category in enumerate(DB.one_hot_coder.categories):
-                    category_weight_container[category_i] = self.calculate_weight(category_probabilities[category.name])
-                original_weight_matrix = reshape_np(category_weight_container[index_container], (CAMERA_ROWS, CAMERA_COLS))
-                treshold = sum_np(original_weight_matrix) * 2
-                for size in [(3, 3), (4, 4), (5, 5), (6, 6)]:
-                    grey_dilation(input=original_weight_matrix, output=dilated_weight_container, size=size, mode="constant")
-                    if sum_np(dilated_weight_container) > treshold:
-                        break
-                if False:
-                    show_array(original_weight_matrix)
-                    show_array(dilated_weight_container)
-                    root_logger.info(sum_np(treshold))
-                    root_logger.info(sum_np(dilated_weight_container))
-                weight_container[batch_i] = reshape_np(dilated_weight_container, (CAMERA_ROWS * CAMERA_COLS))
-                root_logger.debug(category_weight_container)
-                root_logger.debug(one_hot_container[batch_i])
-                root_logger.debug(sum_np(one_hot_container[batch_i, :, 1]))
-                root_logger.debug(index_container)
-                root_logger.debug(weight_container[batch_i])
-                root_logger.debug(sum_np(index_container))
-                # https://scikit-learn.org/stable/modules/generated/sklearn.utils.class_weight.compute_class_weight.html
-            yield img_array_container.copy(), mask_container.copy(), weight_container.copy()
+            for sample_i in range(self.batch_size):
+                img_source, mask_source = DB.get_sources(sample_i)
+                img_array_container[sample_i] = img_source.get_an_input()
+                mask_container[sample_i, :, :, 0] = mask_source.get_an_input(DB.one_hot_coder)[:, :, target_i]
+            yield img_array_container.copy(), mask_container.copy()
 
-    def get_output_layer(self, input_layer: int) -> int:
+    def visualize_batches(self):
+        canvas = zeros((480, 640, 3))
+        for image_batch, mask_batch in self.train_data:
+            root_logger.info(image_batch.shape)
+            root_logger.info(mask_batch.shape)
+            for sample_i in range(image_batch.shape[0]):
+                image_sample = image_batch[sample_i]
+                mask_sample = mask_batch[sample_i]
+                root_logger.info(image_sample.shape)
+                root_logger.info(mask_sample.shape)
+                canvas[:, :, 0] = mask_sample[:, :, 0]
+                canvas[:, :, 1:3] = image_sample[:, :, 1:3]
+                show_array(canvas)
+            break
+
+    def get_output_layer(self, input_layer: int):
         def c(layers, filters, kernel_size, activation="relu"):
             layer = concatenate_ke(layers) if type(layers) is list else layers
             return Conv2D_ke(filters=filters, kernel_size=kernel_size, strides=1, activation=activation)(layer)
@@ -422,55 +453,51 @@ class Unet(Singleton):
         def p(layer):
             return MaxPool2D_ke((2, 2))(layer)
 
-        filters = [16, 16, 16]
-        kernel_sizes = [16, 16, 16]
-        activation = "relu"
-        c_478_638 = c(input_layer, 16, 3)
-        c_476_636 = c(c_478_638, 16, 3)
-        c_474_634 = c(c_476_636, 16, 3)
+        first_filters = 16
+        c_478_638 = c(input_layer, first_filters, 3)
+        c_476_636 = c(c_478_638, first_filters, 3)
+        c_474_634 = c(c_476_636, first_filters, 3)
         p_237_317 = p(c_474_634)
-        c_235_315 = c(p_237_317, 32, 3)
-        c_233_313 = c(c_235_315, 32, 3)
-        c_230_310 = c(c_233_313, 32, 4)
+        c_235_315 = c(p_237_317, first_filters * 2, 3)
+        c_233_313 = c(c_235_315, first_filters * 2, 3)
+        c_230_310 = c(c_233_313, first_filters * 2, 4)
         p_115_155 = p(c_230_310)
-        c_113_153 = c(p_115_155, 64, 3)
-        c_111_151 = c(c_113_153, 64, 3)
-        c_108_148 = c(c_111_151, 64, 4)
+        c_113_153 = c(p_115_155, first_filters * 4, 3)
+        c_111_151 = c(c_113_153, first_filters * 4, 3)
+        c_108_148 = c(c_111_151, first_filters * 4, 4)
         p_54_74 = p(c_108_148)
-        c_52_72 = c(p_54_74, 128, 3)
-        c_50_70 = c(c_52_72, 128, 3)
-        c_48_68 = c(c_50_70, 128, 3)
+        c_52_72 = c(p_54_74, first_filters * 8, 3)
+        c_50_70 = c(c_52_72, first_filters * 8, 3)
+        c_48_68 = c(c_50_70, first_filters * 8, 3)
         p_24_34 = p(c_48_68)
-        c_22_32 = c(p_24_34, 256, 2)
-        t_48_68 = t(c_22_32, 128, 4, strides=(2, 2))
-        t_50_70 = t([t_48_68, c_48_68], 128, 3)
-        t_52_72 = t([t_50_70, c_50_70], 128, 3)
-        t_54_74 = t([t_52_72, c_52_72], 128, 3)
-        t_108_148 = t([t_54_74, p_54_74], 64, 2, strides=(2, 2))
-        t_111_151 = t([t_108_148, c_108_148], 64, 4)
-        t_113_153 = t([t_111_151, c_111_151], 64, 3)
-        t_115_155 = t([t_113_153, c_113_153], 64, 3)
-        t_230_310 = t([t_115_155, p_115_155], 32, 2, strides=(2, 2))
-        t_233_313 = t([t_230_310, c_230_310], 32, 4)
-        t_235_315 = t([t_233_313, c_233_313], 32, 3)
-        t_237_317 = t([t_235_315, c_235_315], 32, 3)
-        t_474_634 = t([t_237_317, p_237_317], 16, 2, strides=(2, 2))
-        t_476_636 = t([t_474_634, c_474_634], 16, 3)
-        t_478_638 = t([t_476_636, c_476_636], 16, 3)
-        t_480_640 = t([t_478_638, c_478_638], 16, 3)
-
+        c_22_32 = c(p_24_34, first_filters * 16, 2)
+        t_48_68 = t(c_22_32, first_filters * 8, 4, strides=(2, 2))
+        t_50_70 = t([t_48_68, c_48_68], first_filters * 8, 3)
+        t_52_72 = t([t_50_70, c_50_70], first_filters * 8, 3)
+        t_54_74 = t([t_52_72, c_52_72], first_filters * 8, 3)
+        t_108_148 = t([t_54_74, p_54_74], first_filters * 4, 2, strides=(2, 2))
+        t_111_151 = t([t_108_148, c_108_148], first_filters * 4, 4)
+        t_113_153 = t([t_111_151, c_111_151], first_filters * 4, 3)
+        t_115_155 = t([t_113_153, c_113_153], first_filters * 4, 3)
+        t_230_310 = t([t_115_155, p_115_155], first_filters * 2, 2, strides=(2, 2))
+        t_233_313 = t([t_230_310, c_230_310], first_filters * 2, 4)
+        t_235_315 = t([t_233_313, c_233_313], first_filters * 2, 3)
+        t_237_317 = t([t_235_315, c_235_315], first_filters * 2, 3)
+        t_474_634 = t([t_237_317, p_237_317], first_filters, 2, strides=(2, 2))
+        t_476_636 = t([t_474_634, c_474_634], first_filters, 3)
+        t_478_638 = t([t_476_636, c_476_636], first_filters, 3)
+        t_480_640 = t([t_478_638, c_478_638], first_filters, 3)
+        c_480_640 = c(t_480_640, 1, 1, "sigmoid")
         if False:
-            model = Model_ke(input_layer, x)
+            model = Model_ke(input_layer, c_480_640)
             plot_model_ke(model, show_shapes=True, to_file=self.png_path)
-            input(5555555555555)
-
-        return c(t_480_640, 1, 1, "sigmoid")
+            input("Check")
+        return c_480_640
 
     @virtual_proxy_property
     def structure(self) -> Model_ke:
         input_l = Input_ke(shape=(CAMERA_ROWS, CAMERA_COLS, 3))
         output_l = self.get_output_layer(input_l)
-        output_l = Reshape_ke((CAMERA_ROWS * CAMERA_COLS, 1))(output_l)
         model = Model_ke(input_l, output_l)
         plot_model_ke(model, show_shapes=True, to_file=self.png_path)
         return model
@@ -488,8 +515,12 @@ class Unet(Singleton):
         return ReduceLROnPlateau_ke(monitor=self.monitor, factor=self.RLRFactor, verbose=self.verbose, epsilon=self.RLR_min_delta, patience=self.RLR_patience)
 
     @virtual_proxy_property
+    def tensorboard(self):
+        return TensorBoard_ke(log_dir="./logs")
+
+    @virtual_proxy_property
     def callbacks(self):
-        return [self.early_stopper, self.saver, self.learning_rate_reducer]
+        return [self.early_stopper, self.saver, self.learning_rate_reducer]  # ,self.tensorboard]
 
     @virtual_proxy_property
     def train_data(self):
@@ -502,3 +533,8 @@ class Unet(Singleton):
     @virtual_proxy_property
     def model(self) -> Model_ke:
         return load_model_ke(filepath=self.hdf5_path)
+
+
+import keras.losses
+
+keras.losses.loss = Unet.loss
