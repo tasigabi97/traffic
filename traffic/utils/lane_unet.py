@@ -327,31 +327,25 @@ class Unet(Singleton):
         normalized_img = ImgSource.get_normalized_img(rgb_array)
         input_batch = normalized_img[None, :, :, :]
         predicted_batch = self.model.predict_on_batch(input_batch)
-        probability_matrix = predicted_batch[0, :, :, 0]
-        return probability_matrix
+        distribution_matrix = predicted_batch[0]
+        return distribution_matrix
 
     def visualize_prediction(self):
+        canvas = zeros((960, 640, 3))
         img_source, mask_source = self.train_DB.get_sources(0)
         expected_one_hot = mask_source.get_an_input(self.train_DB.one_hot_coder)
-        target_i = None
-        for category_i, category in enumerate(self.train_DB.one_hot_coder.categories):
-            if category.name != "Hatter":
-                target_i = category_i
-                break
-        expected_mask = expected_one_hot[:, :, target_i]
         input_img = img_source.get_an_input()
-        predicted_mask = self.get_prediction(input_img * 255)
-        root_logger.info(predicted_mask.shape)
-        assert predicted_mask.shape == expected_mask.shape == (480, 640)
-        canvas = zeros((960, 640, 3))
+        predicted_distribution_matrix = self.get_prediction(input_img * 255)
         canvas[:480] = input_img
         canvas[480:] = input_img
-        canvas[:, :, 0] = 0
-        for category_i, category in enumerate(self.train_DB.one_hot_coder.categories):
-            if category.name != "Hatter":
-                canvas[:480, :, 0] += expected_mask
-                canvas[480:, :, 0] += predicted_mask
-        show_array(canvas)
+        root_logger.info(predicted_distribution_matrix.shape)
+        assert expected_one_hot.shape == predicted_distribution_matrix.shape == (480, 640, len(Category))
+        for category_i in range(predicted_distribution_matrix.shape[2]):
+            expected_mask = expected_one_hot[:, :, category_i]
+            predicted_mask = predicted_distribution_matrix[:, :, category_i]
+            canvas[:480, :, 0] = expected_mask
+            canvas[480:, :, 0] = predicted_mask
+            show_array(canvas)
 
     def train(
         self,
@@ -369,7 +363,7 @@ class Unet(Singleton):
         self.RLRFactor = RLRFactor  # 0.2
         self.batch_size, self.steps_per_epoch, self.validation_steps = batch_size, steps_per_epoch, validation_steps
         self.max_epochs = 999
-        self.metrics = ["binary_accuracy"]
+        self.metrics = ["categorical_accuracy"]
         self.monitor = "loss"
         self.verbose = 1
         self.structure.compile(optimizer=Adam_ke(), loss=self.loss, metrics=self.metrics)
@@ -397,15 +391,19 @@ class Unet(Singleton):
 
         y_true = p(y_true, "y_true 1.")
         y_pred = p(y_pred, "y_pred 1.")
-        bce = binary_crossentropy_tf(target=y_true, output=y_pred)
-        bce = p(bce, "bce 1.")
-        bce_mask = MaxPool2D_ke(pool_size=8, strides=1, padding="same")(y_true)
-        bce_mask = p(bce_mask, "bce_mask 1.")
-        relevant_bce = multiply_tf(bce, bce_mask)
-        relevant_bce = p(relevant_bce, "relevant_bce 1.")
-        sum_bce = sum_ke(relevant_bce)
-        sum_bce = p(sum_bce, "sum_bce 1.")
-        return sum_bce
+        cce = categorical_crossentropy_ke(y_true, y_pred)
+        cce = p(cce, "cce 1.")
+        cce_mask = MaxPool2D_ke(pool_size=8, strides=1, padding="same")(y_true)
+        for category_i, category in enumerate(Unet.train_DB.one_hot_coder.categories):
+            if category.name != "Hatter":
+                cce_mask = cce_mask[:, :, :, category_i]
+                break
+        cce_mask = p(cce_mask, "cce_mask 1.")
+        relevant_cce = multiply_tf(cce, cce_mask)
+        relevant_cce = p(relevant_cce, "relevant_cce 1.")
+        sum_cce = sum_ke(relevant_cce)
+        sum_cce = p(sum_cce, "sum_cce 1.")
+        return sum_cce
 
     @classmethod
     def calculate_weight(cls, probability: float) -> float:
@@ -413,32 +411,28 @@ class Unet(Singleton):
 
     def batch_generator(self, DB: LaneDB):  # this generetor should instentiate onehot coders
         img_array_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, 3), dtype=float32)
-        mask_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, 1), dtype=float32)
-        target_i = None
-        for category_i, category in enumerate(DB.one_hot_coder.categories):
-            if category.name != "Hatter":
-                target_i = category_i
-                break
+        one_hot_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, len(Category)), dtype=float32)
         while True:
             for sample_i in range(self.batch_size):
                 img_source, mask_source = DB.get_sources(sample_i)
                 img_array_container[sample_i] = img_source.get_an_input()
-                mask_container[sample_i, :, :, 0] = mask_source.get_an_input(DB.one_hot_coder)[:, :, target_i]
-            yield img_array_container.copy(), mask_container.copy()
+                one_hot_container[sample_i] = mask_source.get_an_input(DB.one_hot_coder)
+            yield img_array_container.copy(), one_hot_container.copy()
 
     def visualize_batches(self):
         canvas = zeros((480, 640, 3))
-        for image_batch, mask_batch in self.train_data:
+        for image_batch, one_hot_batch in self.train_data:
             root_logger.info(image_batch.shape)
-            root_logger.info(mask_batch.shape)
+            root_logger.info(one_hot_batch.shape)
             for sample_i in range(image_batch.shape[0]):
                 image_sample = image_batch[sample_i]
-                mask_sample = mask_batch[sample_i]
+                one_hot_sample = one_hot_batch[sample_i]
                 root_logger.info(image_sample.shape)
-                root_logger.info(mask_sample.shape)
-                canvas[:, :, 0] = mask_sample[:, :, 0]
-                canvas[:, :, 1:3] = image_sample[:, :, 1:3]
-                show_array(canvas)
+                root_logger.info(one_hot_sample.shape)
+                for category_i in range(one_hot_sample.shape[2]):
+                    canvas[:, :, 0] = one_hot_sample[:, :, category_i]
+                    canvas[:, :, 1:3] = image_sample[:, :, 1:3]
+                    show_array(canvas)
             break
 
     def get_output_layer(self, input_layer: int):
@@ -487,7 +481,7 @@ class Unet(Singleton):
         t_476_636 = t([t_474_634, c_474_634], first_filters, 3)
         t_478_638 = t([t_476_636, c_476_636], first_filters, 3)
         t_480_640 = t([t_478_638, c_478_638], first_filters, 3)
-        c_480_640 = c(t_480_640, 1, 1, "sigmoid")
+        c_480_640 = c(t_480_640, len(Category), 1, "softmax")
         if False:
             model = Model_ke(input_layer, c_480_640)
             plot_model_ke(model, show_shapes=True, to_file=self.png_path)

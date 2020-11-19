@@ -639,6 +639,6 @@ def _():
     x.hdf5_path = "/traffic/Unet.hdf5"
     img = ones_np((480, 640, 3), dtype=uint8) * 111
     y = x.get_prediction(img)
-    assert y.shape == (480, 640)
+    assert y.shape == (480, 640, 2)
     assert y.dtype.name == "float32"
     assert max_np(y) <= 1
