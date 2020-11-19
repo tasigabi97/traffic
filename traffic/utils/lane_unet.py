@@ -173,13 +173,16 @@ class MaskSource(NNInputSource):
         assert resized_img.shape == (513, 640, 3)
         cropped_img = ImgSource.get_cropped_img(resized_img)
         one_hot = one_hot_coder.get_encoded(cropped_img)
+        one_hot = reshape_np(one_hot, (CAMERA_ROWS * CAMERA_COLS, -1))
         return one_hot
 
     def visualize_an_input(self, one_hot_coder: OneHot):
         an_input = self.get_an_input(one_hot_coder)
+        reshaped_input = reshape_np(an_input, (CAMERA_ROWS, CAMERA_COLS, -1))
         root_logger.info(an_input.shape)
-        for i in range(an_input.shape[-1]):
-            show_array(an_input[:, :, i])
+        root_logger.info(reshaped_input.shape)
+        for i in range(reshaped_input.shape[-1]):
+            show_array(reshaped_input[:, :, i])
 
 
 class IMSourcePair:
@@ -327,21 +330,23 @@ class Unet(Singleton):
         normalized_img = ImgSource.get_normalized_img(rgb_array)
         input_batch = normalized_img[None, :, :, :]
         predicted_batch = self.model.predict_on_batch(input_batch)
-        distribution_matrix = predicted_batch[0]
+        distribution_list = predicted_batch[0]
+        distribution_matrix = reshape_np(distribution_list, (CAMERA_ROWS, CAMERA_COLS, -1))
         return distribution_matrix
 
     def visualize_prediction(self):
         canvas = zeros((960, 640, 3))
         img_source, mask_source = self.train_DB.get_sources(0)
         expected_one_hot = mask_source.get_an_input(self.train_DB.one_hot_coder)
+        reshaped_expected_one_hot = reshape_np(expected_one_hot, (CAMERA_ROWS, CAMERA_COLS, -1))
         input_img = img_source.get_an_input()
         predicted_distribution_matrix = self.get_prediction(input_img * 255)
         canvas[:480] = input_img
         canvas[480:] = input_img
         root_logger.info(predicted_distribution_matrix.shape)
-        assert expected_one_hot.shape == predicted_distribution_matrix.shape == (480, 640, len(Category))
+        assert reshaped_expected_one_hot.shape == predicted_distribution_matrix.shape == (480, 640, len(Category))
         for category_i in range(predicted_distribution_matrix.shape[2]):
-            expected_mask = expected_one_hot[:, :, category_i]
+            expected_mask = reshaped_expected_one_hot[:, :, category_i]
             predicted_mask = predicted_distribution_matrix[:, :, category_i]
             canvas[:480, :, 0] = expected_mask
             canvas[480:, :, 0] = predicted_mask
@@ -366,7 +371,7 @@ class Unet(Singleton):
         self.metrics = ["categorical_accuracy"]
         self.monitor = "loss"
         self.verbose = 1
-        self.structure.compile(optimizer=Adam_ke(), loss=self.loss, metrics=self.metrics)
+        self.structure.compile(optimizer=Adam_ke(), loss=self.loss, metrics=self.metrics, sample_weight_mode="temporal")
         history = self.structure.fit_generator(
             generator=self.train_data,
             steps_per_epoch=self.steps_per_epoch,
@@ -393,17 +398,7 @@ class Unet(Singleton):
         y_pred = p(y_pred, "y_pred 1.")
         cce = categorical_crossentropy_ke(y_true, y_pred)
         cce = p(cce, "cce 1.")
-        cce_mask = MaxPool2D_ke(pool_size=8, strides=1, padding="same")(y_true)
-        for category_i, category in enumerate(Unet.train_DB.one_hot_coder.categories):
-            if category.name != "Hatter":
-                cce_mask = cce_mask[:, :, :, category_i]
-                break
-        cce_mask = p(cce_mask, "cce_mask 1.")
-        relevant_cce = multiply_tf(cce, cce_mask)
-        relevant_cce = p(relevant_cce, "relevant_cce 1.")
-        sum_cce = sum_ke(relevant_cce)
-        sum_cce = p(sum_cce, "sum_cce 1.")
-        return sum_cce
+        return cce
 
     @classmethod
     def calculate_weight(cls, probability: float) -> float:
@@ -411,28 +406,48 @@ class Unet(Singleton):
 
     def batch_generator(self, DB: LaneDB):  # this generetor should instentiate onehot coders
         img_array_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, 3), dtype=float32)
-        one_hot_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, len(Category)), dtype=float32)
+        one_hot_container = zeros((self.batch_size, CAMERA_ROWS * CAMERA_COLS, len(Category)), dtype=float32)
+        weight_container = zeros((self.batch_size, CAMERA_ROWS * CAMERA_COLS), dtype=float32)
+        dilated_weight_container = zeros((CAMERA_ROWS, CAMERA_COLS), dtype=float32)
+        index_container = zeros((CAMERA_ROWS * CAMERA_COLS,), dtype=uint8)
+        category_weight_container = zeros((len(Category),), dtype=float32)
         while True:
             for sample_i in range(self.batch_size):
                 img_source, mask_source = DB.get_sources(sample_i)
                 img_array_container[sample_i] = img_source.get_an_input()
                 one_hot_container[sample_i] = mask_source.get_an_input(DB.one_hot_coder)
-            yield img_array_container.copy(), one_hot_container.copy()
+                argmax_np(one_hot_container[sample_i], axis=-1, out=index_container)
+                category_probabilities = mask_source.category_probabilities
+                for category_i, category in enumerate(DB.one_hot_coder.categories):
+                    category_weight_container[category_i] = self.calculate_weight(category_probabilities[category.name])
+                original_weight_matrix = reshape_np(category_weight_container[index_container], (CAMERA_ROWS, CAMERA_COLS))
+                grey_dilation(input=original_weight_matrix, output=dilated_weight_container, size=(8, 8), mode="constant")
+                weight_container[sample_i] = reshape_np(dilated_weight_container, (CAMERA_ROWS * CAMERA_COLS))
+
+            yield img_array_container.copy(), one_hot_container.copy(), weight_container.copy()
 
     def visualize_batches(self):
         canvas = zeros((480, 640, 3))
-        for image_batch, one_hot_batch in self.train_data:
+        for image_batch, one_hot_batch, weight_batch in self.train_data:
             root_logger.info(image_batch.shape)
             root_logger.info(one_hot_batch.shape)
+            root_logger.info(weight_batch.shape)
             for sample_i in range(image_batch.shape[0]):
                 image_sample = image_batch[sample_i]
                 one_hot_sample = one_hot_batch[sample_i]
+                weight_sample = weight_batch[sample_i]
                 root_logger.info(image_sample.shape)
                 root_logger.info(one_hot_sample.shape)
-                for category_i in range(one_hot_sample.shape[2]):
-                    canvas[:, :, 0] = one_hot_sample[:, :, category_i]
+                root_logger.info(weight_sample.shape)
+                reshaped_one_hot_sample = reshape_np(one_hot_sample, (CAMERA_ROWS, CAMERA_COLS, -1))
+                reshaped_weight_sample = reshape_np(weight_sample, (CAMERA_ROWS, CAMERA_COLS))
+                root_logger.info(reshaped_one_hot_sample.shape)
+                root_logger.info(reshaped_weight_sample.shape)
+                for category_i in range(reshaped_one_hot_sample.shape[2]):
                     canvas[:, :, 1:3] = image_sample[:, :, 1:3]
+                    canvas[:, :, 0] = reshaped_one_hot_sample[:, :, category_i]
                     show_array(canvas)
+                show_array(reshaped_weight_sample)
             break
 
     def get_output_layer(self, input_layer: int):
@@ -492,6 +507,7 @@ class Unet(Singleton):
     def structure(self) -> Model_ke:
         input_l = Input_ke(shape=(CAMERA_ROWS, CAMERA_COLS, 3))
         output_l = self.get_output_layer(input_l)
+        output_l = Reshape_ke((CAMERA_ROWS * CAMERA_COLS, -1))(output_l)
         model = Model_ke(input_l, output_l)
         plot_model_ke(model, show_shapes=True, to_file=self.png_path)
         return model

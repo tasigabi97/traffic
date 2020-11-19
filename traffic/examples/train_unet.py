@@ -8,7 +8,7 @@ def main():
     batch_size = 1
     x = Unet()
     while 1:
-        char = input("p/b/t")
+        char = input("p/b/t/s")
         if char == "p":
             x.visualize_prediction()
         elif char == "b":
@@ -25,6 +25,11 @@ def main():
                 RLR_patience=1,
                 RLRFactor=0.5,
             )
+        elif char == "s":
+            img_source, mask_source = Unet.train_DB.get_sources(0)
+            mask_source.visualize_an_input(Unet.train_DB.one_hot_coder)
+            img_source.visualize_an_input()
+            img_source.visualize_data()
         else:
             break
 

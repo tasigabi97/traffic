@@ -552,7 +552,7 @@ def _():
     m_imresize_scipy.assert_called_once_with(m_data(), sentinel.resized_shape, interp="nearest")
     m_get_cropped_img.assert_called_once_with(m_imresize_scipy())
     m_one_hot.get_encoded.assert_called_once_with(sentinel.cropped_img)
-    assert y.shape == (480, 640, 30) and y.dtype.name == "float32"
+    assert y.shape == (480 * 640, 30) and y.dtype.name == "float32"
 
 
 @name(LaneDB.create_categories, "colors", globals())
