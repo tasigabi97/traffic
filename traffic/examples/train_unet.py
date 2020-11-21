@@ -21,7 +21,7 @@ def main():
                 validation_steps=1,
                 early_stopping_min_delta=0,
                 RLR_min_delta=0,
-                early_stopping_patience=2,
+                early_stopping_patience=10,
                 RLR_patience=1,
                 RLRFactor=0.5,
             )

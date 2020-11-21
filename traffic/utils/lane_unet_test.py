@@ -601,6 +601,27 @@ def _():
     assert x.image_and_mask_source_pairs[1] == m_IMSourcePair1
 
 
+@name(LaneDB.orders.fget, "", globals())
+def _():
+    m_category_1 = MagicMock()
+    m_category_2 = MagicMock()
+    m_category_3 = MagicMock()
+    m_category_1.name = "1"
+    m_category_2.name = "2"
+    m_category_3.name = "3"
+    m_Category = patch("traffic.utils.lane_unet.Category", new=MagicMock()).start()
+    m_Category.__iter__.return_value = [m_category_1, m_category_2, m_category_3]
+    m_image_and_mask_source_pair_1 = MagicMock(mask_source=MagicMock(category_probabilities={"1": 1, "2": 2, "3": 3}))
+    m_image_and_mask_source_pair_2 = MagicMock(mask_source=MagicMock(category_probabilities={"1": 3, "2": 2, "3": 1}))
+    m_image_and_mask_source_pair_3 = MagicMock(mask_source=MagicMock(category_probabilities={"1": 0, "2": 2, "3": 3.1}))
+    x = object.__new__(LaneDB)
+    x.image_and_mask_source_pairs = [m_image_and_mask_source_pair_1, m_image_and_mask_source_pair_2, m_image_and_mask_source_pair_3]
+    assert set(x.orders.keys()) == {"1", "2", "3"}
+    assert x.orders["1"] == [1, 0]
+    assert x.orders["2"] == [0, 1, 2]
+    assert x.orders["3"] == [2, 0, 1]
+
+
 @name(LaneDB._random_source_id.fget, "1", globals())
 def _():
     m_randrange = patch("traffic.utils.lane_unet.randrange", new=MagicMock(return_value=sentinel.random_int)).start()

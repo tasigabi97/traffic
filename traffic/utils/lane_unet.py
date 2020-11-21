@@ -286,7 +286,16 @@ class LaneDB:
     def __init__(self, img_paths, mask_paths):
         self.image_and_mask_source_pairs = [IMSourcePair(ImgSource(img_path), MaskSource(mask_path)) for img_path, mask_path in zip(img_paths, mask_paths)]
         self.image_and_mask_source_pairs.sort(key=lambda image_and_mask_source_pair: image_and_mask_source_pair.mask_source.category_probabilities["Hatter"])
-        # todo sorted indexes by categories
+
+    @virtual_proxy_property
+    def orders(self) -> dict:
+        orders = {c.name: [p_i for p_i, p in enumerate(self.image_and_mask_source_pairs) if p.mask_source.category_probabilities[c.name] > 0] for c in Category}
+        for category_name, order in orders.items():
+            order.sort(reverse=True, key=lambda p_i: self.image_and_mask_source_pairs[p_i].mask_source.category_probabilities[category_name])
+        return orders
+
+    def get_sources_by_category(self, category_name, i: float) -> Tuple[ImgSource, MaskSource]:
+        return category_name, i
 
     @virtual_proxy_property  # todo elvileg nem kell
     def category_probabilities(self) -> dict:
