@@ -84,3 +84,4 @@ multiply_tf = tensorflow.math.multiply
 mean_ke = keras.backend.mean
 TensorBoard_ke = keras.callbacks.TensorBoard
 Variable_tf = tensorflow.Variable
+Callback_ke = keras.callbacks.Callback

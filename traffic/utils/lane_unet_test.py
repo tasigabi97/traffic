@@ -30,20 +30,7 @@ for DB in DBs:
         assert_almost_equal_np(sum(mask_source.attributes.values()), 1)
         assert_almost_equal_np(sum(mask_source.category_probabilities.values()), 1)
     assert_almost_equal_np(sum(DB.category_probabilities.values()), 1)
-    for k, v in DB.category_probabilities.items():
-        if k == "Hatter":
-            assert v > 0.84
-        else:
-            assert v >= 0
 # module test >>
-if False:
-    train_DB = DBs[0]
-    img_source, mask_source = train_DB.get_sources(0)
-    if False:
-        img_source.visualize_data()
-        mask_source.visualize_data()
-    img_source.visualize_an_input()
-    mask_source.visualize_an_input(train_DB.one_hot_coder)
 if False:
     for DB in DBs:
         for img_source, mask_source in zip(DB.img_sources, DB.mask_sources):
@@ -222,6 +209,12 @@ def _():
     x = eval_ke(x)
     assert x.shape == (1, 3)
     assert_almost_equal_np(x, 0)
+
+
+@name(get_summed_dict, "1", globals())
+def _():
+    assert get_summed_dict([{"1": 1, "2": 2}, {"1": 1, "2": 3}]) == {"1": 2, "2": 5}
+    assert get_summed_dict([{"1": 1, "2": 2}]) == {"1": 1, "2": 2}
 
 
 @name(get_probabilities, "1", globals())
@@ -622,13 +615,71 @@ def _():
     assert x.orders["3"] == [2, 0, 1]
 
 
-@name(LaneDB._random_source_id.fget, "1", globals())
+@name(LaneDB.get_sources_by_category, "", globals())
 def _():
-    m_randrange = patch("traffic.utils.lane_unet.randrange", new=MagicMock(return_value=sentinel.random_int)).start()
+    m_orders = patch.object(LaneDB, "orders", new=PropertyMock(return_value={"1": [1, 0, 2]})).start()
+    m_image_and_mask_source_pair_1 = MagicMock(mask_source=sentinel.mask_source_1, img_source=sentinel.img_source_1)
+    m_image_and_mask_source_pair_2 = MagicMock(mask_source=sentinel.mask_source_2, img_source=sentinel.img_source_2)
+    m_image_and_mask_source_pair_3 = MagicMock(mask_source=sentinel.mask_source_3, img_source=sentinel.img_source_3)
     x = object.__new__(LaneDB)
-    x.image_and_mask_source_pairs = [None, None]
-    assert x._random_source_id == sentinel.random_int
-    m_randrange.assert_called_once_with(2)
+    x.image_and_mask_source_pairs = [m_image_and_mask_source_pair_1, m_image_and_mask_source_pair_2, m_image_and_mask_source_pair_3]
+    assert x.get_sources_by_category("1", 0) == (sentinel.img_source_2, sentinel.mask_source_2)
+    assert x.get_sources_by_category("1", 0.3) == (sentinel.img_source_2, sentinel.mask_source_2)
+    assert x.get_sources_by_category("1", 0.4) == (sentinel.img_source_1, sentinel.mask_source_1)
+    assert x.get_sources_by_category("1", 1) == (sentinel.img_source_3, sentinel.mask_source_3)
+
+
+@name(Unet.epoch_i_setter.fget, "1", globals())
+def _():
+    x = object.__new__(Unet)
+    assert not hasattr(x, "epoch_i")
+    x.epoch_i_setter.on_epoch_begin(sentinel.epoch_i)
+    assert x.epoch_i is sentinel.epoch_i
+
+
+@name(Unet.dot_cloud_coordinate_cycle.fget, "1", globals())
+def _():
+    x = object.__new__(Unet)
+    y = next(x.dot_cloud_coordinate_cycle)
+    assert y != (0, 0)
+    for _ in range((480 * 640) - 1):
+        assert y != next(x.dot_cloud_coordinate_cycle)
+    assert y == next(x.dot_cloud_coordinate_cycle)
+
+
+@name(Unet.get_an_important_category_cycle, "1", globals())
+def _():
+    m_category_1 = MagicMock()
+    m_category_2 = MagicMock()
+    m_category_3 = MagicMock()
+    m_category_1.name = "1"
+    m_category_2.name = "Hatter"
+    m_category_3.name = "3"
+    m_Category = patch("traffic.utils.lane_unet.Category", new=MagicMock()).start()
+    m_Category.__iter__.return_value = [m_category_1, m_category_2, m_category_3]
+    x = object.__new__(Unet)
+    y = x.get_an_important_category_cycle()
+    assert next(y) is m_category_1
+    assert next(y) is m_category_3
+    assert next(y) is m_category_1
+    y = x.get_an_important_category_cycle()
+    assert next(y) is m_category_1
+
+
+@name(Unet.max_hardness.fget, "1", globals())
+def _():
+    x = object.__new__(Unet)
+    x.min_epochs = 3
+    x.epoch_i = 0
+    assert x.max_hardness == 1 / 3
+    x.epoch_i = 1
+    assert x.max_hardness == 1 / 3 + 1 / 3
+    x.epoch_i = 2
+    assert x.max_hardness == 1
+    x.epoch_i = 3
+    assert x.max_hardness == 1
+    x.epoch_i = 4
+    assert x.max_hardness == 1
 
 
 @name(Unet.train, "1", globals())

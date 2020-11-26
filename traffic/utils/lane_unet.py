@@ -5,7 +5,11 @@ from traffic.utils.lane_helper import labels as labels_helper
 from traffic.logging import root_logger
 
 
-def get_probabilities(histogram: dict):
+def get_summed_dict(dicts: List[dict]) -> dict:
+    return {k: sum([d[k] for d in dicts]) for k in dicts[0].keys()}
+
+
+def get_probabilities(histogram: dict) -> dict:
     sum_ = sum(histogram.values())
     return {k: (v / sum_) for k, v in histogram.items()}
 
@@ -294,35 +298,27 @@ class LaneDB:
             order.sort(reverse=True, key=lambda p_i: self.image_and_mask_source_pairs[p_i].mask_source.category_probabilities[category_name])
         return orders
 
-    def get_sources_by_category(self, category_name, i: float) -> Tuple[ImgSource, MaskSource]:
-        return category_name, i
-
-    @virtual_proxy_property  # todo elvileg nem kell
-    def category_probabilities(self) -> dict:
-        sum_dict = {category.name: 0 for category in Category}
-        for image_and_mask_source_pair in self.image_and_mask_source_pairs:
-            mask_source = image_and_mask_source_pair.mask_source
-            for category_name, category_probability in mask_source.category_probabilities.items():
-                sum_dict[category_name] += category_probability
-        probabilities = get_probabilities(sum_dict)
-        return probabilities
+    def get_sources_by_category(self, category_name, hardness: float) -> Tuple[ImgSource, MaskSource]:
+        order = self.orders[category_name]
+        STEP_SIZE = 1 / len(order)
+        if (1 - STEP_SIZE) <= hardness <= 1:
+            order_index = len(order) - 1
+        else:
+            for i in range(len(order)):
+                if (STEP_SIZE * i) <= hardness <= (STEP_SIZE * (i + 1)):
+                    order_index = i
+        image_and_mask_source_pair_index = order[order_index]
+        image_and_mask_source_pair = self.image_and_mask_source_pairs[image_and_mask_source_pair_index]
+        return image_and_mask_source_pair.img_source, image_and_mask_source_pair.mask_source
 
     @virtual_proxy_property
     def one_hot_coder(self) -> OneHot:
         return OneHot(CAMERA_ROWS, CAMERA_COLS, Category)
 
-    @property  # todo elvileg nem kell
-    def _random_source_id(self):
-        return randrange(len(self.image_and_mask_source_pairs))
-
-    # todo floattal és categoryval
-    def get_sources(self, id: int) -> Tuple[ImgSource, MaskSource]:
-        return self.image_and_mask_source_pairs[id].img_source, self.image_and_mask_source_pairs[id].mask_source
-
-    # todo elvileg nem kell
-    @property
-    def random_sources(self):
-        return self.get_sources(self._random_source_id)
+    @virtual_proxy_property
+    def category_probabilities(self) -> dict:
+        summed_category_probabilities = get_summed_dict([i_a_m_s_p.mask_source.category_probabilities for i_a_m_s_p in self.image_and_mask_source_pairs])
+        return get_probabilities(summed_category_probabilities)
 
 
 class Unet(Singleton):
@@ -345,7 +341,9 @@ class Unet(Singleton):
 
     def visualize_prediction(self):
         canvas = zeros((960, 640, 3))
-        img_source, mask_source = self.train_DB.get_sources(0)
+        hardness = int(input("Hardness[0-100]")) / 100.0
+        root_logger.info(hardness)
+        img_source, mask_source = self.train_DB.get_sources_by_category("Zarovonal", hardness)
         expected_one_hot = mask_source.get_an_input(self.train_DB.one_hot_coder)
         reshaped_expected_one_hot = reshape_np(expected_one_hot, (CAMERA_ROWS, CAMERA_COLS, -1))
         input_img = img_source.get_an_input()
@@ -363,6 +361,7 @@ class Unet(Singleton):
 
     def train(
         self,
+        min_epochs: int,
         batch_size: int,
         steps_per_epoch: int,
         validation_steps: int,
@@ -375,8 +374,10 @@ class Unet(Singleton):
         self.RLR_min_delta, self.early_stopping_min_delta = RLR_min_delta, early_stopping_min_delta  # 0.0001
         self.RLR_patience, self.early_stopping_patience = RLR_patience, early_stopping_patience  # 4
         self.RLRFactor = RLRFactor  # 0.2
-        self.batch_size, self.steps_per_epoch, self.validation_steps = batch_size, steps_per_epoch, validation_steps
-        self.max_epochs = 999
+        self.batch_size, self.validation_steps = batch_size, validation_steps
+        self.steps_per_epoch = int(len(self.train_DB.image_and_mask_source_pairs) / self.batch_size) if steps_per_epoch is None else steps_per_epoch
+        self.min_epochs = min_epochs
+        self.max_epochs = 99999
         self.metrics = ["categorical_accuracy"]
         self.monitor = "loss"
         self.verbose = 1
@@ -391,6 +392,10 @@ class Unet(Singleton):
             validation_steps=self.validation_steps,
         )
         return history
+
+    @staticmethod
+    def custom_monitor(y_true, y_pred):
+        ...
 
     @staticmethod
     def loss(y_true, y_pred):
@@ -409,30 +414,73 @@ class Unet(Singleton):
         cce = p(cce, "cce 1.")
         return cce
 
+    @property
+    def max_hardness(self) -> float:
+        if (self.epoch_i + 1) >= self.min_epochs:
+            return 1
+        return (self.epoch_i + 1) * (1 / self.min_epochs)
+
+    def get_a_random_hardness(self) -> float:
+        return uniform(0, self.max_hardness)
+
     @classmethod
     def calculate_weight(cls, probability: float) -> float:
         return 1 if probability < 0.5 else 0
 
+    def get_an_important_category_cycle(self) -> Iterable_type[Category]:
+        return cycle([category for category in Category if category.name != "Hatter"])
+
+    @virtual_proxy_property
+    def dot_cloud_coordinate_cycle(self) -> Iterable_type[Tuple[int, int]]:
+        coordinates = [(row_i, col_i) for row_i in range(CAMERA_ROWS) for col_i in range(CAMERA_COLS)]
+        shuffle(coordinates)
+        return cycle(coordinates)
+
     def batch_generator(self, DB: LaneDB):  # this generetor should instentiate onehot coders
+        MIN_WEIGHT_CONTOUR_RATIO = 0.8
+        WEIGHT_DOT_CLOUD_RATIO = 0.6
+        i_cat_cycle = self.get_an_important_category_cycle()
         img_array_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, 3), dtype=float32)
         one_hot_container = zeros((self.batch_size, CAMERA_ROWS * CAMERA_COLS, len(Category)), dtype=float32)
         weight_container = zeros((self.batch_size, CAMERA_ROWS * CAMERA_COLS), dtype=float32)
         dilated_weight_container = zeros((CAMERA_ROWS, CAMERA_COLS), dtype=float32)
         index_container = zeros((CAMERA_ROWS * CAMERA_COLS,), dtype=uint8)
         category_weight_container = zeros((len(Category),), dtype=float32)
+        for category_i, category in enumerate(DB.one_hot_coder.categories):
+            category_weight_container[category_i] = self.calculate_weight(DB.category_probabilities[category.name])
         while True:
+            # collect sources
+            img_sources, mask_sources = [], []
             for sample_i in range(self.batch_size):
-                img_source, mask_source = DB.get_sources(sample_i)
+                img_source, mask_source = DB.get_sources_by_category(next(i_cat_cycle).name, self.get_a_random_hardness())
+                img_sources.append(img_source)
+                mask_sources.append(mask_source)
+            # save inputs
+            for sample_i, (img_source, mask_source) in enumerate(zip(img_sources, mask_sources)):
+                a_random_hardness = self.get_a_random_hardness()
                 img_array_container[sample_i] = img_source.get_an_input()
                 one_hot_container[sample_i] = mask_source.get_an_input(DB.one_hot_coder)
+            for sample_i in range(self.batch_size):
                 argmax_np(one_hot_container[sample_i], axis=-1, out=index_container)
-                category_probabilities = mask_source.category_probabilities
-                for category_i, category in enumerate(DB.one_hot_coder.categories):
-                    category_weight_container[category_i] = self.calculate_weight(category_probabilities[category.name])
                 original_weight_matrix = reshape_np(category_weight_container[index_container], (CAMERA_ROWS, CAMERA_COLS))
-                grey_dilation(input=original_weight_matrix, output=dilated_weight_container, size=(8, 8), mode="constant")
+                the_samples_original_weight_sum = sum_np(original_weight_matrix)
+                dilation_sum_threshold = the_samples_original_weight_sum * (1 + MIN_WEIGHT_CONTOUR_RATIO)
+                unsetted_weight_sum = the_samples_original_weight_sum * WEIGHT_DOT_CLOUD_RATIO
+                dilation_size_int = 2
+                while True:
+                    grey_dilation(input=original_weight_matrix, output=dilated_weight_container, size=(dilation_size_int, dilation_size_int), mode="constant")
+                    if sum_np(dilated_weight_container) >= dilation_sum_threshold:
+                        break
+                    dilation_size_int += 1
+                while True:
+                    coordinate = next(self.dot_cloud_coordinate_cycle)
+                    if dilated_weight_container[coordinate] > 0:
+                        continue
+                    dilated_weight_container[coordinate] = 1
+                    unsetted_weight_sum -= 1
+                    if unsetted_weight_sum <= 0:
+                        break
                 weight_container[sample_i] = reshape_np(dilated_weight_container, (CAMERA_ROWS * CAMERA_COLS))
-
             yield img_array_container.copy(), one_hot_container.copy(), weight_container.copy()
 
     def visualize_batches(self):
@@ -521,13 +569,39 @@ class Unet(Singleton):
         plot_model_ke(model, show_shapes=True, to_file=self.png_path)
         return model
 
+    class EarlyStopper(EarlyStopping_ke):
+        def __init__(self, unet: "Unet", *args, **kwargs):
+            self.unet = unet
+            super().__init__(*args, **kwargs)
+
+        def on_epoch_end(self, epoch, logs=None):
+            if epoch >= (self.unet.min_epochs - 1):
+                super().on_epoch_end(epoch, logs)
+            else:
+                root_logger.info("Early stopper is inactivated")
+
     @virtual_proxy_property
     def early_stopper(self):
-        return EarlyStopping_ke(monitor=self.monitor, min_delta=self.early_stopping_min_delta, patience=self.early_stopping_patience, verbose=self.verbose)
+        return self.EarlyStopper(
+            self, monitor=self.monitor, min_delta=self.early_stopping_min_delta, patience=self.early_stopping_patience, verbose=self.verbose
+        )
+
+    class Saver(ModelCheckpoint_ke):
+        def __init__(self, unet: "Unet", *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+            self.unet = unet
+            super().__init__(*self.args, **self.kwargs)
+
+        def on_epoch_end(self, epoch, logs=None):
+            if epoch == (self.unet.min_epochs - 1):
+                root_logger.info("The saver had been reinitialized")
+                super().__init__(*self.args, **self.kwargs)
+            super().on_epoch_end(epoch, logs)
 
     @virtual_proxy_property
     def saver(self):
-        return ModelCheckpoint_ke(filepath=self.hdf5_path, monitor=self.monitor, save_best_only=True, verbose=self.verbose)
+        return self.Saver(self, filepath=self.hdf5_path, monitor=self.monitor, save_best_only=True, verbose=self.verbose)
 
     @virtual_proxy_property
     def learning_rate_reducer(self):
@@ -537,9 +611,25 @@ class Unet(Singleton):
     def tensorboard(self):
         return TensorBoard_ke(log_dir="./logs")
 
+    class EpochISetter(Callback_ke):
+        def __init__(self, unet: "Unet"):
+            super().__init__()
+            self.unet = unet
+
+        def on_epoch_begin(self, epoch, logs=None):
+            self.unet.epoch_i = epoch
+            root_logger.info(self.unet.epoch_i)
+
+        def on_epoch_end(self, epoch, logs=None):
+            root_logger.info(logs)
+
+    @virtual_proxy_property
+    def epoch_i_setter(self):
+        return self.EpochISetter(self)
+
     @virtual_proxy_property
     def callbacks(self):
-        return [self.early_stopper, self.saver, self.learning_rate_reducer]  # ,self.tensorboard]
+        return [self.early_stopper, self.saver, self.learning_rate_reducer, self.epoch_i_setter]  # ,self.tensorboard]
 
     @virtual_proxy_property
     def train_data(self):

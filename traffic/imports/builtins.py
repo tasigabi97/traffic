@@ -47,3 +47,4 @@ sub = re.sub
 Union = typing.Union
 wraps = functools.wraps
 logarithm = math.log
+uniform = random.uniform
