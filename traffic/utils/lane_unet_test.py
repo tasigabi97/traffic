@@ -481,12 +481,21 @@ def _():
     assert y == {"1": 0, "2": 1, "3": 2}
 
 
-@name(ImgSource.get_rescale_factor, "", globals())
+@name(ImgSource.get_hres_to_cropmat_rescale_factor, "", globals())
 def _():
-    assert_almost_equal_np(ImgSource.get_rescale_factor(480, 640), 1)
-    assert_almost_equal_np(ImgSource.get_rescale_factor(4800, 640), 1)
-    assert_almost_equal_np(ImgSource.get_rescale_factor(480, 6400), 1)
-    assert_almost_equal_np(ImgSource.get_rescale_factor(48000, 6400), 0.1)
+    m_crop_material_size_factor = patch("traffic.utils.lane_unet.HyperP.crop_material_size_factor", new=1).start()
+    assert_almost_equal_np(ImgSource.get_hres_to_cropmat_rescale_factor(480, 640), 1)
+    assert_almost_equal_np(ImgSource.get_hres_to_cropmat_rescale_factor(4800, 640), 1)
+    assert_almost_equal_np(ImgSource.get_hres_to_cropmat_rescale_factor(480, 6400), 1)
+    assert_almost_equal_np(ImgSource.get_hres_to_cropmat_rescale_factor(48000, 6400), 0.1)
+
+
+@name(ImgSource.get_degree, "", globals())
+def _():
+    assert ImgSource.get_degree(0.5, True) == -90
+    assert ImgSource.get_degree(0.5, False) == 90
+    assert ImgSource.get_degree(0, False) == 0
+    assert ImgSource.get_degree(1, False) == 180
 
 
 @name(ImgSource.get_normalized_img, "", globals())
@@ -499,35 +508,42 @@ def _():
 def _():
     y = zeros((500, 640, 3))
     y[10] = 1
-    x = ImgSource.get_cropped_img(y)
+    x = ImgSource.get_cropped_img(y, 0, True, 0, True)
     assert x[0, 0, 0] == 1
 
 
 @name(ImgSource.get_an_input, "", globals())
 def _():
     m_data = patch.object(ImgSource, "data", new=PropertyMock(return_value=MagicMock(shape=(sentinel.nrows, sentinel.ncols, sentinel.ch)))).start()
-    m_get_rescale_factor = patch.object(ImgSource, "get_rescale_factor", new=MagicMock(return_value=sentinel.rescale_factor)).start()
+    m_get_hres_to_cropmat_rescale_factor = patch.object(
+        ImgSource, "get_hres_to_cropmat_rescale_factor", new=MagicMock(return_value=sentinel.rescale_factor)
+    ).start()
     m_rescale_skimage = patch("traffic.utils.lane_unet.rescale_skimage", new=MagicMock(return_value=sentinel.rescaled_img)).start()
-    m_array_np = patch("traffic.utils.lane_unet.array_np", new=MagicMock(return_value=MagicMock(shape=(513, 640, 3)))).start()
+    m_array_np = patch("traffic.utils.lane_unet.array_np", new=MagicMock(return_value=MagicMock(shape=(666, 832, 3)))).start()
     m_get_cropped_img = patch.object(ImgSource, "get_cropped_img", new=MagicMock(return_value=sentinel.cropped_img)).start()
-    m_get_normalized_img = patch.object(ImgSource, "get_normalized_img", new=MagicMock(return_value=sentinel.normalized_img)).start()
+    m_imrotate_sci = patch("traffic.utils.lane_unet.imrotate_sci", new=MagicMock(return_value=sentinel.rotated_img)).start()
+    m_get_degree = patch.object(ImgSource, "get_degree", new=MagicMock(return_value=sentinel.degree)).start()
+    m_get_normalized_img = patch.object(ImgSource, "get_normalized_img", new=MagicMock()).start()
     x = object.__new__(ImgSource)
-    y = x.get_an_input()
+    y = x.get_an_input(sentinel.rotation_hardness, sentinel.clockwise, sentinel.row_hardness, sentinel.row_up, sentinel.col_hardness, sentinel.col_left, 0.5)
     m_data.assert_called_once_with()
-    m_get_rescale_factor.assert_called_once_with(sentinel.nrows, sentinel.ncols)
+    m_get_hres_to_cropmat_rescale_factor.assert_called_once_with(sentinel.nrows, sentinel.ncols)
     m_rescale_skimage.assert_called_once_with(m_data(), sentinel.rescale_factor, anti_aliasing=False, preserve_range=True)
     m_array_np.assert_called_once_with(sentinel.rescaled_img, dtype=uint8)
-    m_get_cropped_img.assert_called_once_with(m_array_np())
-    m_get_normalized_img.assert_called_once_with(sentinel.cropped_img)
-    assert y is sentinel.normalized_img
+    m_get_cropped_img.assert_called_once_with(m_array_np(), sentinel.row_hardness, sentinel.row_up, sentinel.col_hardness, sentinel.col_left)
+    m_get_normalized_img.assert_called_once_with(sentinel.rotated_img)
+    m_get_degree.assert_called_once_with(sentinel.rotation_hardness, sentinel.clockwise)
+    m_imrotate_sci.assert_called_once_with(m_get_cropped_img(), sentinel.degree, interp="bicubic")
+    assert m_get_normalized_img().__setitem__.called
+    assert y is m_get_normalized_img()
 
 
 @name(MaskSource.get_resized_shape, "", globals())
 def _():
-    m_get_rescale_factor = patch.object(ImgSource, "get_rescale_factor", new=MagicMock(return_value=0.5)).start()
+    m_get_hres_to_cropmat_rescale_factor = patch.object(ImgSource, "get_hres_to_cropmat_rescale_factor", new=MagicMock(return_value=0.5)).start()
     x = object.__new__(MaskSource)
     y = x.get_resized_shape(100, 101)
-    m_get_rescale_factor.assert_called_once_with(100, 101)
+    m_get_hres_to_cropmat_rescale_factor.assert_called_once_with(100, 101)
     assert y == (50, 50, 3)
 
 
@@ -535,16 +551,22 @@ def _():
 def _():
     m_data = patch.object(MaskSource, "data", new=PropertyMock(return_value=MagicMock(shape=(sentinel.nrows, sentinel.ncols, sentinel.ch)))).start()
     m_get_resized_shape = patch.object(MaskSource, "get_resized_shape", new=MagicMock(return_value=sentinel.resized_shape)).start()
-    m_imresize_scipy = patch("traffic.utils.lane_unet.imresize_scipy", new=MagicMock(return_value=MagicMock(shape=(513, 640, 3)))).start()
+    m_imresize_scipy = patch("traffic.utils.lane_unet.imresize_scipy", new=MagicMock(return_value=MagicMock(shape=(666, 832, 3)))).start()
+    m_imrotate_sci = patch("traffic.utils.lane_unet.imrotate_sci", new=MagicMock(return_value=sentinel.rotated_img)).start()
     m_get_cropped_img = patch.object(ImgSource, "get_cropped_img", new=MagicMock(return_value=sentinel.cropped_img)).start()
+    m_get_degree = patch.object(ImgSource, "get_degree", new=MagicMock(return_value=sentinel.degree)).start()
     x = object.__new__(MaskSource)
     m_one_hot = MagicMock()
     m_one_hot.get_encoded.return_value = zeros((480, 640, 30), dtype=float32)
-    y = x.get_an_input(m_one_hot)
+    y = x.get_an_input(
+        m_one_hot, sentinel.rotation_hardness, sentinel.clockwise, sentinel.row_hardness, sentinel.row_up, sentinel.col_hardness, sentinel.col_left
+    )
     m_get_resized_shape.assert_called_once_with(sentinel.nrows, sentinel.ncols)
     m_imresize_scipy.assert_called_once_with(m_data(), sentinel.resized_shape, interp="nearest")
-    m_get_cropped_img.assert_called_once_with(m_imresize_scipy())
-    m_one_hot.get_encoded.assert_called_once_with(sentinel.cropped_img)
+    m_get_cropped_img.assert_called_once_with(m_imresize_scipy(), sentinel.row_hardness, sentinel.row_up, sentinel.col_hardness, sentinel.col_left)
+    m_get_degree.assert_called_once_with(sentinel.rotation_hardness, sentinel.clockwise)
+    m_imrotate_sci.assert_called_once_with(m_get_cropped_img(), sentinel.degree, interp="nearest")
+    m_one_hot.get_encoded.assert_called_once_with(sentinel.rotated_img)
     assert y.shape == (480 * 640, 30) and y.dtype.name == "float32"
 
 
@@ -637,14 +659,14 @@ def _():
     assert x.epoch_i is sentinel.epoch_i
 
 
-@name(Unet.dot_cloud_coordinate_cycle.fget, "1", globals())
+@name(LaneUtil, "1", globals())
 def _():
     x = object.__new__(Unet)
-    y = next(x.dot_cloud_coordinate_cycle)
+    y = next(LaneUtil.dot_cloud_coordinate_cycle)
     assert y != (0, 0)
     for _ in range((480 * 640) - 1):
-        assert y != next(x.dot_cloud_coordinate_cycle)
-    assert y == next(x.dot_cloud_coordinate_cycle)
+        assert y != next(LaneUtil.dot_cloud_coordinate_cycle)
+    assert y == next(LaneUtil.dot_cloud_coordinate_cycle)
 
 
 @name(Unet.get_an_important_category_cycle, "1", globals())

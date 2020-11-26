@@ -14,7 +14,7 @@ def main():
             x.visualize_prediction()
         elif char == "b":
             x.batch_size = batch_size
-            x.epoch_i = 0
+            x.epoch_i = 60
             x.min_epochs = min_epochs
             x.visualize_batches()
         elif char == "t":
@@ -31,8 +31,9 @@ def main():
             )
         elif char == "s":
             img_source, mask_source = Unet.train_DB.get_sources_by_category("Zarovonal", 0)
-            mask_source.visualize_an_input(Unet.train_DB.one_hot_coder)
-            img_source.visualize_an_input()
+            common_input_params = {"rotation_hardness": 0, "clockwise": True, "row_hardness": 0, "row_up": False, "col_hardness": 1, "col_left": False}
+            mask_source.visualize_an_input(Unet.train_DB.one_hot_coder, **common_input_params)
+            img_source.visualize_an_input(**common_input_params, noise_hardness=1)
             img_source.visualize_data()
         else:
             break

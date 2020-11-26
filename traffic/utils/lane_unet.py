@@ -14,6 +14,21 @@ def get_probabilities(histogram: dict) -> dict:
     return {k: (v / sum_) for k, v in histogram.items()}
 
 
+class HyperP:
+    crop_material_size_factor = 1.3
+    max_noise_pixels = int(0.07 * CAMERA_ROWS * CAMERA_COLS)
+    min_weight_contour_ratio = 0.8
+    weight_dot_cloud_ratio = 0.6
+
+
+class LaneUtil:
+    _coordinates = [(row_i, col_i) for row_i in range(CAMERA_ROWS) for col_i in range(CAMERA_COLS)]
+    shuffle(_coordinates)
+    dot_cloud_coordinate_cycle = cycle(_coordinates)
+    _noises = [array_np(noise, dtype=float32) for noise in [[0, 0, 0], [1, 1, 1], [1, 0, 0], [0, 1, 0], [0, 0, 1]]]
+    noise_cycle = cycle(_noises)
+
+
 class Color(metaclass=SingletonByIdMeta):
     def __init__(self, name: str, rgb_tuple: Tuple[int, int, int]):
         self.name, self.rgb_tuple = name, rgb_tuple
@@ -121,29 +136,53 @@ class OneHot:
 
 class ImgSource(NNInputSource):
     @staticmethod
-    def get_rescale_factor(nrows: int, ncols: int) -> float:
-        return max(CAMERA_ROWS / nrows, CAMERA_COLS / ncols)
+    def get_hres_to_cropmat_rescale_factor(nrows: int, ncols: int) -> float:
+        return max(CAMERA_ROWS / nrows, CAMERA_COLS / ncols) * HyperP.crop_material_size_factor
 
     @staticmethod
     def get_normalized_img(img: ndarray) -> ndarray:
         return img / 255
 
     @staticmethod
-    def get_cropped_img(img: ndarray) -> ndarray:
-        crop_start = (img.shape[0] - CAMERA_ROWS) // 2
-        cropped_img = img[crop_start : crop_start + CAMERA_ROWS]
+    def get_degree(hardness: float, clockwise: bool) -> int:
+        degree = int(180 * hardness)
+        if clockwise:
+            degree *= -1
+        return degree
+
+    @staticmethod
+    def get_cropped_img(img: ndarray, row_hardness: float, row_up: bool, col_hardness: float, col_left: bool) -> ndarray:
+        img_rows, img_cols = img.shape[0], img.shape[1]
+        row_middle_start = (img_rows - CAMERA_ROWS) // 2
+        col_middle_start = (img_cols - CAMERA_COLS) // 2
+        row_offset = round(row_middle_start * row_hardness)
+        col_offset = round(col_middle_start * col_hardness)
+        if row_up:
+            row_offset *= -1
+        if col_left:
+            col_offset *= -1
+        row_start = row_middle_start + row_offset
+        col_start = col_middle_start + col_offset
+        cropped_img = img[row_start : row_start + CAMERA_ROWS, col_start : col_start + CAMERA_COLS]
         assert cropped_img.shape == (480, 640, 3)
         return cropped_img
 
-    def get_an_input(self) -> ndarray:
+    def get_an_input(
+        self, rotation_hardness: float, clockwise: bool, row_hardness: float, row_up: bool, col_hardness: float, col_left: bool, noise_hardness: float
+    ) -> ndarray:
         highres_img = self.data
         nrows, ncols, _ = highres_img.shape
-        rescale_factor = ImgSource.get_rescale_factor(nrows, ncols)
+        rescale_factor = ImgSource.get_hres_to_cropmat_rescale_factor(nrows, ncols)
         rescaled_img = rescale_skimage(highres_img, rescale_factor, anti_aliasing=False, preserve_range=True)
         rescaled_img = array_np(rescaled_img, dtype=uint8)
-        assert rescaled_img.shape == (513, 640, 3)
-        cropped_img = ImgSource.get_cropped_img(rescaled_img)
-        normalized_img = ImgSource.get_normalized_img(cropped_img)
+        assert rescaled_img.shape == (666, 832, 3)
+        cropped_img = ImgSource.get_cropped_img(rescaled_img, row_hardness, row_up, col_hardness, col_left)
+        rotated_img = imrotate_sci(cropped_img, ImgSource.get_degree(rotation_hardness, clockwise), interp="bicubic")
+        normalized_img = ImgSource.get_normalized_img(rotated_img)
+        for _ in range(int(HyperP.max_noise_pixels * noise_hardness)):
+            coordinate = next(LaneUtil.dot_cloud_coordinate_cycle)
+            normalized_img[coordinate] = next(LaneUtil.noise_cycle)
+
         return normalized_img
 
 
@@ -153,7 +192,7 @@ class MaskSource(NNInputSource):
 
     @staticmethod
     def get_resized_shape(nrows: int, ncols: int) -> Tuple[int, int, int]:
-        rescale_factor = ImgSource.get_rescale_factor(nrows, ncols)
+        rescale_factor = ImgSource.get_hres_to_cropmat_rescale_factor(nrows, ncols)
         return (round(nrows * rescale_factor), round(ncols * rescale_factor), 3)
 
     def get_calculated_attributes(self):
@@ -169,19 +208,22 @@ class MaskSource(NNInputSource):
                     category_probabilities[category_name] += attributes[color_name]
         return category_probabilities
 
-    def get_an_input(self, one_hot_coder: OneHot) -> ndarray:
+    def get_an_input(
+        self, one_hot_coder: OneHot, rotation_hardness: float, clockwise: bool, row_hardness: float, row_up: bool, col_hardness: float, col_left: bool
+    ) -> ndarray:
         highres_img = self.data
         nrows, ncols, _ = highres_img.shape
         resized_shape = MaskSource.get_resized_shape(nrows, ncols)
         resized_img = imresize_scipy(highres_img, resized_shape, interp="nearest")
-        assert resized_img.shape == (513, 640, 3)
-        cropped_img = ImgSource.get_cropped_img(resized_img)
-        one_hot = one_hot_coder.get_encoded(cropped_img)
+        assert resized_img.shape == (666, 832, 3)
+        cropped_img = ImgSource.get_cropped_img(resized_img, row_hardness, row_up, col_hardness, col_left)
+        rotated_img = imrotate_sci(cropped_img, ImgSource.get_degree(rotation_hardness, clockwise), interp="nearest")
+        one_hot = one_hot_coder.get_encoded(rotated_img)
         one_hot = reshape_np(one_hot, (CAMERA_ROWS * CAMERA_COLS, -1))
         return one_hot
 
-    def visualize_an_input(self, one_hot_coder: OneHot):
-        an_input = self.get_an_input(one_hot_coder)
+    def visualize_an_input(self, *args, **kwargs):
+        an_input = self.get_an_input(*args, **kwargs)
         reshaped_input = reshape_np(an_input, (CAMERA_ROWS, CAMERA_COLS, -1))
         root_logger.info(an_input.shape)
         root_logger.info(reshaped_input.shape)
@@ -342,11 +384,19 @@ class Unet(Singleton):
     def visualize_prediction(self):
         canvas = zeros((960, 640, 3))
         hardness = int(input("Hardness[0-100]")) / 100.0
+        common_input_params = {
+            "rotation_hardness": hardness,
+            "clockwise": True,
+            "row_hardness": hardness,
+            "row_up": False,
+            "col_hardness": hardness,
+            "col_left": False,
+        }
         root_logger.info(hardness)
         img_source, mask_source = self.train_DB.get_sources_by_category("Zarovonal", hardness)
-        expected_one_hot = mask_source.get_an_input(self.train_DB.one_hot_coder)
+        expected_one_hot = mask_source.get_an_input(self.train_DB.one_hot_coder, **common_input_params)
         reshaped_expected_one_hot = reshape_np(expected_one_hot, (CAMERA_ROWS, CAMERA_COLS, -1))
-        input_img = img_source.get_an_input()
+        input_img = img_source.get_an_input(**common_input_params, noise_hardness=hardness)
         predicted_distribution_matrix = self.get_prediction(input_img * 255)
         canvas[:480] = input_img
         canvas[480:] = input_img
@@ -423,6 +473,11 @@ class Unet(Singleton):
     def get_a_random_hardness(self) -> float:
         return uniform(0, self.max_hardness)
 
+    def get_a_random_boolean(self) -> bool:
+        if random_r() > 0.5:
+            return True
+        return False
+
     @classmethod
     def calculate_weight(cls, probability: float) -> float:
         return 1 if probability < 0.5 else 0
@@ -430,15 +485,7 @@ class Unet(Singleton):
     def get_an_important_category_cycle(self) -> Iterable_type[Category]:
         return cycle([category for category in Category if category.name != "Hatter"])
 
-    @virtual_proxy_property
-    def dot_cloud_coordinate_cycle(self) -> Iterable_type[Tuple[int, int]]:
-        coordinates = [(row_i, col_i) for row_i in range(CAMERA_ROWS) for col_i in range(CAMERA_COLS)]
-        shuffle(coordinates)
-        return cycle(coordinates)
-
     def batch_generator(self, DB: LaneDB):  # this generetor should instentiate onehot coders
-        MIN_WEIGHT_CONTOUR_RATIO = 0.8
-        WEIGHT_DOT_CLOUD_RATIO = 0.6
         i_cat_cycle = self.get_an_important_category_cycle()
         img_array_container = zeros((self.batch_size, CAMERA_ROWS, CAMERA_COLS, 3), dtype=float32)
         one_hot_container = zeros((self.batch_size, CAMERA_ROWS * CAMERA_COLS, len(Category)), dtype=float32)
@@ -457,15 +504,22 @@ class Unet(Singleton):
                 mask_sources.append(mask_source)
             # save inputs
             for sample_i, (img_source, mask_source) in enumerate(zip(img_sources, mask_sources)):
-                a_random_hardness = self.get_a_random_hardness()
-                img_array_container[sample_i] = img_source.get_an_input()
-                one_hot_container[sample_i] = mask_source.get_an_input(DB.one_hot_coder)
+                common_input_params = {
+                    "rotation_hardness": self.get_a_random_hardness(),
+                    "clockwise": self.get_a_random_boolean(),
+                    "row_hardness": self.get_a_random_hardness(),
+                    "row_up": self.get_a_random_boolean(),
+                    "col_hardness": self.get_a_random_hardness(),
+                    "col_left": self.get_a_random_boolean(),
+                }
+                img_array_container[sample_i] = img_source.get_an_input(**common_input_params, noise_hardness=self.get_a_random_hardness())
+                one_hot_container[sample_i] = mask_source.get_an_input(DB.one_hot_coder, **common_input_params)
             for sample_i in range(self.batch_size):
                 argmax_np(one_hot_container[sample_i], axis=-1, out=index_container)
                 original_weight_matrix = reshape_np(category_weight_container[index_container], (CAMERA_ROWS, CAMERA_COLS))
                 the_samples_original_weight_sum = sum_np(original_weight_matrix)
-                dilation_sum_threshold = the_samples_original_weight_sum * (1 + MIN_WEIGHT_CONTOUR_RATIO)
-                unsetted_weight_sum = the_samples_original_weight_sum * WEIGHT_DOT_CLOUD_RATIO
+                dilation_sum_threshold = the_samples_original_weight_sum * (1 + HyperP.min_weight_contour_ratio)
+                unsetted_weight_sum = the_samples_original_weight_sum * HyperP.weight_dot_cloud_ratio
                 dilation_size_int = 2
                 while True:
                     grey_dilation(input=original_weight_matrix, output=dilated_weight_container, size=(dilation_size_int, dilation_size_int), mode="constant")
@@ -473,7 +527,7 @@ class Unet(Singleton):
                         break
                     dilation_size_int += 1
                 while True:
-                    coordinate = next(self.dot_cloud_coordinate_cycle)
+                    coordinate = next(LaneUtil.dot_cloud_coordinate_cycle)
                     if dilated_weight_container[coordinate] > 0:
                         continue
                     dilated_weight_container[coordinate] = 1

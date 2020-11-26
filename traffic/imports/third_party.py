@@ -1,4 +1,4 @@
-import cv2, imageio, numpy, pytest, scipy, skimage, termcolor, keras, tensorflow
+import cv2, imageio, numpy, PIL, pytest, scipy, skimage, termcolor, keras, tensorflow
 from matplotlib.pyplot import subplots, show, ion, cla
 from matplotlib.pyplot import imshow as imshow_mat
 from matplotlib.patches import Rectangle, Polygon
@@ -85,3 +85,5 @@ mean_ke = keras.backend.mean
 TensorBoard_ke = keras.callbacks.TensorBoard
 Variable_tf = tensorflow.Variable
 Callback_ke = keras.callbacks.Callback
+rotate_sci = scipy.ndimage.rotate
+imrotate_sci = scipy.misc.imrotate
