@@ -16,9 +16,10 @@ def get_probabilities(histogram: dict) -> dict:
 
 class HyperP:
     crop_material_size_factor = 1.3
-    max_noise_pixels = int(0.07 * CAMERA_ROWS * CAMERA_COLS)
-    min_weight_contour_ratio = 0.8
-    weight_dot_cloud_ratio = 0.6
+    max_noise_pixels = int(0.05 * CAMERA_ROWS * CAMERA_COLS)
+    min_weight_contour_ratio = 1.1
+    weight_dot_cloud_ratio = 0.45
+    first_filters = 32
 
 
 class LaneUtil:
@@ -312,13 +313,14 @@ class LaneDB:
         img_paths, mask_paths = LaneDB._get_all_path()
         train_img_paths, train_mask_paths, val_img_paths, val_mask_paths, test_img_paths, test_mask_paths = [], [], [], [], [], []
         for i in range(len(img_paths)):
-            if i < 500:
+            r = random_r()
+            if r < 0.7:
                 train_img_paths.append(img_paths[i])
                 train_mask_paths.append(mask_paths[i])
-            elif i < 600:
+            elif r < 0.9:
                 val_img_paths.append(img_paths[i])
                 val_mask_paths.append(mask_paths[i])
-            elif i < 700:
+            else:
                 test_img_paths.append(img_paths[i])
                 test_mask_paths.append(mask_paths[i])
         return train_img_paths, train_mask_paths, val_img_paths, val_mask_paths, test_img_paths, test_mask_paths
@@ -535,7 +537,7 @@ class Unet(Singleton):
                     if unsetted_weight_sum <= 0:
                         break
                 weight_container[sample_i] = reshape_np(dilated_weight_container, (CAMERA_ROWS * CAMERA_COLS))
-            yield img_array_container.copy(), one_hot_container.copy(), weight_container.copy()
+            yield img_array_container, one_hot_container, weight_container
 
     def visualize_batches(self):
         canvas = zeros((480, 640, 3))
@@ -573,7 +575,7 @@ class Unet(Singleton):
         def p(layer):
             return MaxPool2D_ke((2, 2))(layer)
 
-        first_filters = 16
+        first_filters = HyperP.first_filters
         c_478_638 = c(input_layer, first_filters, 3)
         c_476_636 = c(c_478_638, first_filters, 3)
         c_474_634 = c(c_476_636, first_filters, 3)

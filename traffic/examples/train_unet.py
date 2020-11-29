@@ -1,12 +1,10 @@
 def main():
-    from traffic.utils.lane_unet import Unet, LaneDB
-    from traffic.utils import show_array
+    from traffic.utils.lane_unet import Unet
     from traffic.logging import root_logger, INFO
-    from traffic.imports import show, imshow_mat, zeros, reshape_np
 
     root_logger.setLevel(INFO)
     batch_size = 2
-    min_epochs = 50
+    min_epochs = 70 * 3
     x = Unet()
     while 1:
         char = input("p/b/t/s")
@@ -21,12 +19,12 @@ def main():
             x.train(
                 min_epochs=min_epochs,
                 batch_size=batch_size,
-                steps_per_epoch=None,
+                steps_per_epoch=250,
                 validation_steps=1,
                 early_stopping_min_delta=0,
                 RLR_min_delta=0,
-                early_stopping_patience=10,
-                RLR_patience=90,
+                early_stopping_patience=20,
+                RLR_patience=90000,
                 RLRFactor=0.5,
             )
         elif char == "s":
