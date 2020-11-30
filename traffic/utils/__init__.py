@@ -83,19 +83,25 @@ class NNInputSource:
 
 
 def set_axes(
-    ax: Axes,
-    image: Array_imageio,
+    *,
+    axis: Axes,
+    canvas_uint8: ndarray,
+    input_img_uint8: ndarray,
+    lane_visualization_uint8: ndarray,
     instance_boxes: ndarray,
     instance_masks_boolean: ndarray,
     instance_class_ids: ndarray,
+    instance_colors: List[Tuple[int, int, int]] = None,
+    instance_captions: List[str] = None,
     all_class_names: List[str],
+    all_class_colors: List[Tuple[int, int, int]] = None,
+    all_class_min_confidences: List[float] = None,
     instance_scores: ndarray = None,
     title: str = None,
     show_mask=True,
     show_mask_contour=True,
     show_bbox=True,
-    instance_colors: List[Tuple[int, int, int]] = None,
-    instance_captions: List[str] = None,
+    show_only_upper=False,
 ):
     """
     boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
@@ -115,10 +121,15 @@ def set_axes(
     else:
         assert INSTANCE_NUMBER == instance_masks_boolean.shape[-1] == instance_class_ids.shape[0]
     title = title or "{}->Number of instances: {}".format(set_axes.__name__, INSTANCE_NUMBER)
-    instance_colors = instance_colors or random_colors(INSTANCE_NUMBER)
-    if False:
-        root_logger.info("type(image):{}".format(type(image)))
-        root_logger.info("str(image):{}".format(str(image)))
+    if instance_colors is not None:
+        pass
+    elif all_class_colors is not None:
+        instance_colors = [all_class_colors[class_id] for class_id in instance_class_ids]
+    else:
+        instance_colors = random_colors(INSTANCE_NUMBER)
+    if True:
+        root_logger.info("type(image):{}".format(type(input_img_uint8)))
+        root_logger.info("max_np(image):{}".format(max_np(input_img_uint8)))
         root_logger.info("type(boxes):{}".format(type(instance_boxes)))
         root_logger.info("str(boxes):{}".format(str(instance_boxes)))
         root_logger.info("type(masks):{}".format(type(instance_masks_boolean)))
@@ -132,25 +143,24 @@ def set_axes(
         root_logger.info("type(colors):{}".format(type(instance_colors)))
         root_logger.info("str(colors):{}".format(str(instance_colors)))
     # átlátszó fehér keret a kép körül
-    ax.cla()
-    ax.set_ylim(image.shape[0] + 20, -20)
-    ax.set_xlim(-20, image.shape[1] + 20)
-    ax.axis("off")
-    ax.set_title(title)
-    output_image = image.astype(uint32).copy()
-    for i in range(INSTANCE_NUMBER):
+    axis.cla()
+    axis.axis("off")
+    axis.set_title(title)
+    for i, (color, class_id) in enumerate(zip(instance_colors, instance_class_ids)):
+        label = all_class_names[class_id]
+        if show_only_upper and label[0].islower():
+            continue
         y1, x1, y2, x2 = instance_boxes[i]
         if not (x1 or x2 or y1 or y2):
             continue  # Skip this instance. Has no bbox. Likely lost in image cropping.
-        color = instance_colors[i]
-        mask = instance_masks_boolean[:, :, i]
-        class_id = instance_class_ids[i]
         score = instance_scores[i] if instance_scores is not None else None
-        label = all_class_names[class_id]
+        if all_class_min_confidences and score and (score < all_class_min_confidences[class_id]):
+            continue
+        mask = instance_masks_boolean[:, :, i]
         caption = instance_captions[i] if instance_captions else "{} {:.3f}".format(label, score) if score else label
-        ax.text(x1, y1 + 8, caption, color="w", size=11, backgroundcolor="none")
+        axis.text(x1, y1 + 8, caption, color="w", size=11, backgroundcolor="none")
         if show_bbox:
-            ax.add_patch(
+            axis.add_patch(
                 Rectangle(
                     (x1, y1),
                     x2 - x1,
@@ -163,7 +173,7 @@ def set_axes(
                 )
             )
         if show_mask:
-            output_image = apply_mask(output_image, mask, color)
+            input_img_uint8 = apply_mask(input_img_uint8, mask, color)
         if show_mask_contour:
             # Pad to ensure proper polygons for masks that touch image edges.
             padded_mask = zeros((mask.shape[0] + 2, mask.shape[1] + 2), dtype=uint8)
@@ -172,8 +182,10 @@ def set_axes(
             for verts in contours:
                 # Subtract the padding and flip (y, x) to (x, y)
                 verts = fliplr(verts) - 1
-                ax.add_patch(Polygon(verts, facecolor="none", edgecolor=color))
-    ax.imshow(output_image.astype(uint8))
+                axis.add_patch(Polygon(verts, facecolor="none", edgecolor=color))
+    canvas_uint8[:480] = input_img_uint8
+    canvas_uint8[480:, :, 1] = lane_visualization_uint8
+    axis.imshow(canvas_uint8)
 
 
 def get_ssid():

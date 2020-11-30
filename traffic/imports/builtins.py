@@ -1,4 +1,4 @@
-import collections, contextlib, functools, inspect, itertools, json, logging, math, random, re, statistics, subprocess, time, typing, os, unittest.mock
+import collections, contextlib, functools, inspect, itertools, json, logging, math, random, re, statistics, subprocess, time, threading, typing, os, unittest.mock
 
 abspath = os.path.abspath
 call_mock = unittest.mock.call
@@ -49,3 +49,5 @@ wraps = functools.wraps
 logarithm = math.log
 uniform = random.uniform
 random_r = random.random
+WARNING = logging.WARNING
+Thread = threading.Thread

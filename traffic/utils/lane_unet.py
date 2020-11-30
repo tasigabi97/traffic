@@ -314,13 +314,13 @@ class LaneDB:
         train_img_paths, train_mask_paths, val_img_paths, val_mask_paths, test_img_paths, test_mask_paths = [], [], [], [], [], []
         for i in range(len(img_paths)):
             r = random_r()
-            if r < 0.7:
+            if i < 500:
                 train_img_paths.append(img_paths[i])
                 train_mask_paths.append(mask_paths[i])
-            elif r < 0.9:
+            elif i < 700:
                 val_img_paths.append(img_paths[i])
                 val_mask_paths.append(mask_paths[i])
-            else:
+            elif i < 701:
                 test_img_paths.append(img_paths[i])
                 test_mask_paths.append(mask_paths[i])
         return train_img_paths, train_mask_paths, val_img_paths, val_mask_paths, test_img_paths, test_mask_paths
@@ -382,6 +382,13 @@ class Unet(Singleton):
         distribution_list = predicted_batch[0]
         distribution_matrix = reshape_np(distribution_list, (CAMERA_ROWS, CAMERA_COLS, -1))
         return distribution_matrix
+
+    def get_lane_visualization(self, rgb_array: ndarray, threshold: float) -> ndarray:
+        prediction = self.get_prediction(rgb_array)
+        interesting_prediction = prediction[:, :, 1]
+        interesting_prediction[interesting_prediction < threshold] = 0
+        interesting_prediction *= 255
+        return interesting_prediction
 
     def visualize_prediction(self):
         canvas = zeros((960, 640, 3))
