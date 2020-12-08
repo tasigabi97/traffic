@@ -383,12 +383,12 @@ class Unet(Singleton):
         distribution_matrix = reshape_np(distribution_list, (CAMERA_ROWS, CAMERA_COLS, -1))
         return distribution_matrix
 
-    def get_lane_visualization(self, rgb_array: ndarray, threshold: float) -> ndarray:
-        prediction = self.get_prediction(rgb_array)
-        interesting_prediction = prediction[:, :, 1]
-        interesting_prediction[interesting_prediction < threshold] = 0
-        interesting_prediction *= 255
-        return interesting_prediction
+    def set_axis(self, *, axis: Axes, probability_matrix: ndarray, threshold: float, title: str):
+        probability_matrix[probability_matrix < threshold] = 0
+        axis.cla()
+        axis.axis("off")
+        axis.set_title(title)
+        axis.imshow(probability_matrix)
 
     def visualize_prediction(self):
         canvas = zeros((960, 640, 3))

@@ -39,6 +39,17 @@ def virtual_proxy_property(func: Callable) -> property:
     return new_func
 
 
+def save_dict_to_json(path: str, d: dict):
+    with open(path, "w") as outfile:
+        dump_json(d, outfile)
+
+
+def get_dict_from_json(path: str) -> dict:
+    with open(path) as json_file:
+        d = load_json(json_file)
+    return d
+
+
 class NNInputSource:
     def __init__(self, path: str):
         self.path = path
@@ -64,15 +75,10 @@ class NNInputSource:
         raise NotImplemented()
 
     def save_attributes_to_json(self, attributes: dict):
-        with open(self.attributes_path, "w") as outfile:
-            dump_json(attributes, outfile)
-        # root_logger.info('Saved {} to {}'.format(attributes,self.attributes_path))
+        save_dict_to_json(self.attributes_path, attributes)
 
     def get_attributes_from_json(self) -> dict:
-        with open(self.attributes_path) as json_file:
-            attributes = load_json(json_file)
-        # root_logger.info('Loaded {} from {}'.format(attributes,self.attributes_path))
-        return attributes
+        return get_dict_from_json(self.attributes_path)
 
     @property
     def attributes(self) -> dict:
@@ -80,112 +86,6 @@ class NNInputSource:
             attributes = self.get_calculated_attributes()
             self.save_attributes_to_json(attributes)
         return self.get_attributes_from_json()
-
-
-def set_axes(
-    *,
-    axis: Axes,
-    canvas_uint8: ndarray,
-    input_img_uint8: ndarray,
-    lane_visualization_uint8: ndarray,
-    instance_boxes: ndarray,
-    instance_masks_boolean: ndarray,
-    instance_class_ids: ndarray,
-    instance_colors: List[Tuple[int, int, int]] = None,
-    instance_captions: List[str] = None,
-    all_class_names: List[str],
-    all_class_colors: List[Tuple[int, int, int]] = None,
-    all_class_min_confidences: List[float] = None,
-    instance_scores: ndarray = None,
-    title: str = None,
-    show_mask=True,
-    show_mask_contour=True,
-    show_bbox=True,
-    show_only_upper=False,
-):
-    """
-    boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
-    masks: [height, width, num_instances]
-    class_ids: [num_instances]
-    class_names: list of class names of the dataset
-    scores: (optional) confidence scores for each box
-    title: (optional) Figure title
-    show_mask, show_bbox: To show masks and bounding boxes or not
-    figsize: (optional) the size of the image
-    colors: (optional) An array or colors to use with each object
-    captions: (optional) A list of strings to use as captions for each object
-    """
-    INSTANCE_NUMBER = instance_boxes.shape[0]
-    if not INSTANCE_NUMBER:
-        root_logger.warning("No instances to display!")
-    else:
-        assert INSTANCE_NUMBER == instance_masks_boolean.shape[-1] == instance_class_ids.shape[0]
-    title = title or "{}->Number of instances: {}".format(set_axes.__name__, INSTANCE_NUMBER)
-    if instance_colors is not None:
-        pass
-    elif all_class_colors is not None:
-        instance_colors = [all_class_colors[class_id] for class_id in instance_class_ids]
-    else:
-        instance_colors = random_colors(INSTANCE_NUMBER)
-    if True:
-        root_logger.info("type(image):{}".format(type(input_img_uint8)))
-        root_logger.info("max_np(image):{}".format(max_np(input_img_uint8)))
-        root_logger.info("type(boxes):{}".format(type(instance_boxes)))
-        root_logger.info("str(boxes):{}".format(str(instance_boxes)))
-        root_logger.info("type(masks):{}".format(type(instance_masks_boolean)))
-        root_logger.info("str(masks):{}".format(str(instance_masks_boolean)))
-        root_logger.info("type(class_ids){}:".format(type(instance_class_ids)))
-        root_logger.info("str(class_ids):{}".format(str(instance_class_ids)))
-        root_logger.info("type(class_names){}:".format(type(all_class_names)))
-        root_logger.info("str(class_names):{}".format(str(all_class_names)))
-        root_logger.info("type(scores){}:".format(type(instance_scores)))
-        root_logger.info("str(scores):{}".format(str(instance_scores)))
-        root_logger.info("type(colors):{}".format(type(instance_colors)))
-        root_logger.info("str(colors):{}".format(str(instance_colors)))
-    # átlátszó fehér keret a kép körül
-    axis.cla()
-    axis.axis("off")
-    axis.set_title(title)
-    for i, (color, class_id) in enumerate(zip(instance_colors, instance_class_ids)):
-        label = all_class_names[class_id]
-        if show_only_upper and label[0].islower():
-            continue
-        y1, x1, y2, x2 = instance_boxes[i]
-        if not (x1 or x2 or y1 or y2):
-            continue  # Skip this instance. Has no bbox. Likely lost in image cropping.
-        score = instance_scores[i] if instance_scores is not None else None
-        if all_class_min_confidences and score and (score < all_class_min_confidences[class_id]):
-            continue
-        mask = instance_masks_boolean[:, :, i]
-        caption = instance_captions[i] if instance_captions else "{} {:.3f}".format(label, score) if score else label
-        axis.text(x1, y1 + 8, caption, color="w", size=11, backgroundcolor="none")
-        if show_bbox:
-            axis.add_patch(
-                Rectangle(
-                    (x1, y1),
-                    x2 - x1,
-                    y2 - y1,
-                    linewidth=2,
-                    alpha=0.7,
-                    linestyle="dashed",
-                    edgecolor=color,
-                    facecolor="none",
-                )
-            )
-        if show_mask:
-            input_img_uint8 = apply_mask(input_img_uint8, mask, color)
-        if show_mask_contour:
-            # Pad to ensure proper polygons for masks that touch image edges.
-            padded_mask = zeros((mask.shape[0] + 2, mask.shape[1] + 2), dtype=uint8)
-            padded_mask[1:-1, 1:-1] = mask
-            contours = find_contours(padded_mask, 0.5)
-            for verts in contours:
-                # Subtract the padding and flip (y, x) to (x, y)
-                verts = fliplr(verts) - 1
-                axis.add_patch(Polygon(verts, facecolor="none", edgecolor=color))
-    canvas_uint8[:480] = input_img_uint8
-    canvas_uint8[480:, :, 1] = lane_visualization_uint8
-    axis.imshow(canvas_uint8)
 
 
 def get_ssid():

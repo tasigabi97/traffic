@@ -13,7 +13,7 @@
 *.out
 *.synctex.gz
 *structure.png
-
+*.json
 
 
 # Distribution / packaging

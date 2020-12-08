@@ -1,5 +1,5 @@
 def main():
-    from traffic.imports import listdir, imread_skimage, join_path, choice, exists, subplots, show, ion, sleep
+    from traffic.imports import listdir, imread_skimage, join_path, choice, exists, subplots, show, ion_mat, sleep
     from traffic.utils import set_axes, Timer
     from mrcnn.model import MaskRCNN
     from mrcnn.utils import download_trained_weights
@@ -103,7 +103,7 @@ def main():
         GPU_COUNT = 1
         IMAGES_PER_GPU = 1
 
-    ion()
+    ion_mat()
     fig, ax = subplots()
     show()
     input("Wait for figure.")

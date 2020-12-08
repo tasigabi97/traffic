@@ -1,14 +1,4 @@
-from traffic.imports import (
-    VideoCapture,
-    cvtColor,
-    Tuple,
-    List,
-    contextmanager,
-    ndarray,
-    cycle,
-    imshow_cv2,
-    destroyAllWindows,
-)
+from traffic.imports import VideoCapture, cvtColor, Tuple, List, contextmanager, ndarray, cycle, imshow_cv2, destroyAllWindows, CAP_PROP_BUFFERSIZE
 from traffic.logging import root_logger
 from traffic.utils import webcam_server
 from traffic.globals import g
@@ -31,6 +21,7 @@ class Camera(object):
     def __enter__(self) -> "Camera":
         if self._video_capture is None:
             self._video_capture = VideoCapture(self.id)
+            self._video_capture.set(CAP_PROP_BUFFERSIZE, 1)
         if not self._video_capture.isOpened():
             self._video_capture.open(self.id)
         try:

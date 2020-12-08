@@ -1,10 +1,22 @@
-import cv2, imageio, numpy, PIL, pytest, scipy, skimage, termcolor, keras, tensorflow
-from matplotlib.pyplot import subplots, show, ion, cla
+import cv2, imageio, numpy, PIL, pytest, scipy, skimage, shapely.geometry, termcolor, keras, tensorflow
+from matplotlib.pyplot import subplots, show, ion, cla, figure, get_current_fig_manager, pause
 from matplotlib.pyplot import imshow as imshow_mat
 from matplotlib.patches import Rectangle, Polygon
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib import get_backend
+from matplotlib.backend_bases import Event, MouseEvent, KeyEvent
 
+Point_sh = shapely.geometry.Point
+Polygon_sh = shapely.geometry.Polygon
+KeyEvent = KeyEvent
+Event = Event
+MouseEvent = MouseEvent
+CAP_PROP_BUFFERSIZE = cv2.CAP_PROP_BUFFERSIZE
+pause = pause
+figure_mat = figure
+get_current_fig_manager = get_current_fig_manager
+get_backend = get_backend
 Adam_ke = keras.optimizers.Adam
 any_np = numpy.any
 apply_along_axis = numpy.apply_along_axis
@@ -28,7 +40,7 @@ destroyAllWindows = cv2.destroyAllWindows
 EarlyStopping_ke = keras.callbacks.EarlyStopping
 expand_dims = numpy.expand_dims
 equal_np = numpy.equal
-Figure = Figure
+Figure_mat = Figure
 find_contours = skimage.measure.find_contours
 fliplr = numpy.fliplr
 float32 = numpy.float32
@@ -47,10 +59,10 @@ imshow_cv2 = cv2.imshow
 imshow_mat = imshow_mat
 Input_ke = keras.Input
 int32 = numpy.int32
-ion = ion
+ion_mat = ion
 label = skimage.measure.label
 plot_model_ke = keras.utils.plot_model
-Polygon = Polygon
+Polygon_mat = Polygon
 Rectangle = Rectangle
 ReduceLROnPlateau_ke = keras.callbacks.ReduceLROnPlateau
 raises = pytest.raises
@@ -87,3 +99,4 @@ Variable_tf = tensorflow.Variable
 Callback_ke = keras.callbacks.Callback
 rotate_sci = scipy.ndimage.rotate
 imrotate_sci = scipy.misc.imrotate
+moveaxis_np = numpy.moveaxis
