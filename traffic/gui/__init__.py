@@ -9,8 +9,7 @@ root_logger.debug(get_backend())
 
 
 class Window:
-    config_path = join_path(CONTAINER_ROOT_PATH, "area_config.json")
-    center_path = join_path(CONTAINER_ROOT_PATH, "center_config.json")
+    config_path = join_path(CONTAINER_ROOT_PATH, "config.json")
     HORIZONTAL = "HORIZONTAL"
     VERTICAL = "VERTICAL"
     EXIT = "q"
@@ -20,11 +19,16 @@ class Window:
     SHOW_MASK = "m"
     SHOW_MASK_CONTOUR = "c"
     THRESHOLD = "t"
+    CENTER = "c"
     NEW_CONFIG = "n"
     EDIT_CONFIG = "e"
     ENTER = "enter"
     BACKSPACE = "backspace"
     ESCAPE = "escape"
+    UP_ARROW = "up"
+    DOWN_ARROW = "down"
+    RIGHT_ARROW = "right"
+    LEFT_ARROW = "left"
     SCROLL_UP = "up"
     SCROLL_DOWN = "down"
     MOUSE_LEFT = 1
@@ -87,8 +91,8 @@ class Window:
                 self.area_axis.add_patch(Polygon_mat(xy_coords, facecolor="none", edgecolor=normalized_rgb_tuple))
                 polygon_sh = Polygon_sh(xy_coords)
                 for detected_object in detected_objects:
-                    detection_center_x = detected_object.x1 + (0.5 * detected_object.width)
-                    detection_center_y = detected_object.y1 + (0.5 * detected_object.height)
+                    detection_center_x = detected_object.x1 + (self.plus_width_factor * detected_object.width)
+                    detection_center_y = detected_object.y1 + (self.plus_height_factor * detected_object.height)
                     detection_center_point = Point_sh(detection_center_x, detection_center_y)
                     is_in_area = polygon_sh.contains(detection_center_point)
                     if is_in_area:
@@ -100,24 +104,61 @@ class Window:
         self.area_axis.imshow(rgb_array)
 
     @property
-    def area_dict(self):
+    def config_dict(self):
         if not exists(self.config_path):
             return dict()
         return get_dict_from_json(self.config_path)
 
-    @area_dict.setter
-    def area_dict(self, d: dict):
+    @config_dict.setter
+    def config_dict(self, d: dict):
         save_dict_to_json(self.config_path, d)
 
-    @property  # one file
-    def center_file(self):
-        if not exists(self.center_path):
-            return {self.HORIZONTAL: 0.5, self.VERTICAL: 0.5}
-        return get_dict_from_json(self.config_path)
+    @property
+    def area_dict(self):
+        config_dict = self.config_dict
+        key = self.__class__.area_dict.fget.__name__
+        if key in config_dict.keys():
+            return config_dict[key]
+        return dict()
 
-    @center_file.setter
-    def center_file(self, d: dict):
-        save_dict_to_json(self.center_path, d)
+    @area_dict.setter
+    def area_dict(self, d: dict):
+        config_dict = self.config_dict
+        key = self.__class__.area_dict.fget.__name__
+        config_dict[key] = d
+        self.config_dict = config_dict
+
+    @property
+    def plus_width_factor(self):
+        config_dict = self.config_dict
+        key = self.__class__.plus_width_factor.fget.__name__
+        if key in config_dict.keys():
+            return config_dict[key]
+        return 0.5
+
+    @plus_width_factor.setter
+    def plus_width_factor(self, factor: float):
+        factor = max(0, min(1, factor))
+        config_dict = self.config_dict
+        key = self.__class__.plus_width_factor.fget.__name__
+        config_dict[key] = factor
+        self.config_dict = config_dict
+
+    @property
+    def plus_height_factor(self):
+        config_dict = self.config_dict
+        key = self.__class__.plus_height_factor.fget.__name__
+        if key in config_dict.keys():
+            return config_dict[key]
+        return 0.5
+
+    @plus_height_factor.setter
+    def plus_height_factor(self, factor: float):
+        factor = max(0, min(1, factor))
+        config_dict = self.config_dict
+        key = self.__class__.plus_height_factor.fget.__name__
+        config_dict[key] = factor
+        self.config_dict = config_dict
 
     @property
     def title(self) -> str:
@@ -183,6 +224,7 @@ class MainMenu(WindowState):
         Window.THRESHOLD: "Edit threshold",
         Window.NEW_CONFIG: "Create new config file",
         Window.EDIT_CONFIG: "Edit the config file",
+        Window.CENTER: "Move center points",
     }
 
     def __init__(self, window: Window):
@@ -192,6 +234,8 @@ class MainMenu(WindowState):
     def press(self, event: KeyEvent):
         if event.key == Window.THRESHOLD:
             self.go_to(ThresholdSetter)
+        elif event.key == Window.CENTER:
+            self.go_to(CenterSetter)
         elif event.key == Window.EXIT:
             self.go_to(ExitState)
         elif event.key == Window.NEW_CONFIG:
@@ -199,6 +243,35 @@ class MainMenu(WindowState):
             self.go_to(AreaNameSetter)
         elif event.key == Window.EDIT_CONFIG:
             self.go_to(AreaNameSetter)
+
+
+class CenterSetter(WindowState):
+    keys = {
+        Window.ESCAPE: "Back to main menu",
+        "->": "Move center point right",
+        "<-": "Move center point left",
+        "^": "Move center point up",
+        "ˇ": "Move center point down",
+    }
+
+    def __init__(self, window: Window):
+        super().__init__(window)
+        self.window.title = str(self)
+
+    def press(self, event: KeyEvent):
+        step_size = 0.05
+        if event.key == Window.ESCAPE:
+            self.go_to(MainMenu)
+            return
+        elif event.key == Window.RIGHT_ARROW:
+            self.window.plus_width_factor += step_size
+        elif event.key == Window.LEFT_ARROW:
+            self.window.plus_width_factor -= step_size
+        elif event.key == Window.UP_ARROW:
+            self.window.plus_height_factor -= step_size
+        elif event.key == Window.DOWN_ARROW:
+            self.window.plus_height_factor += step_size
+        self.window.title = "{:.3f} / {:.3f}".format(self.window.plus_width_factor, self.window.plus_height_factor)
 
 
 class ThresholdSetter(WindowState):
@@ -222,7 +295,7 @@ class ThresholdSetter(WindowState):
             self.window.unet_lane_threshold = max(step_size, self.window.unet_lane_threshold - step_size)
         elif event.button == Window.SCROLL_DOWN and event.inaxes is self.window.unet_bg_axis:
             self.window.unet_bg_threshold = max(step_size, self.window.unet_bg_threshold - step_size)
-        root_logger.info("Bg->{}, Lane->{}".format(self.window.unet_bg_threshold, self.window.unet_lane_threshold))
+        self.window.title = "{:.3f} / {:.3f}".format(self.window.unet_bg_threshold, self.window.unet_lane_threshold)
 
 
 class AreaNameSetter(WindowState):

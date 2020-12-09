@@ -5,7 +5,7 @@ attrs==20.3.0
 Babel==2.9.0
 backcall==0.1.0
 bleach==3.0.2
-certifi==2020.11.8
+certifi==2020.12.5
 chardet==3.0.4
 cycler==0.10.0
 Cython==0.29.21
@@ -20,7 +20,7 @@ idna==2.10
 imageio==2.9.0
 imagesize==1.2.0
 imgaug==0.4.0
-importlib-metadata==2.1.0
+importlib-metadata==2.1.1
 iniconfig==1.1.1
 ipykernel==5.1.0
 ipyparallel==6.3.0
