@@ -8,7 +8,7 @@ from traffic.gui import *
 
 def main():
     with choose_camera() as camera:
-        window = Window(fullscreen=False)
+        window = Window(fullscreen=True)
         unet, mrcnn = Unet(), Mrcnn()
         root_logger.setLevel(INFO)
         while window.draw():

@@ -33,6 +33,7 @@ class Window:
     SCROLL_DOWN = "down"
     MOUSE_LEFT = 1
     normalized_rgb_tuples = [(0, 1, 0), (1, 0, 0), (0, 0, 1), (1, 1, 0), (1, 0, 1), (0, 1, 1)]
+    default_normalized_rgb_tuple = (1, 1, 1)
 
     def __init__(self, fullscreen: bool):
         self.exit = False
@@ -64,11 +65,17 @@ class Window:
         point_marker = "o"
         text_size = 11
         rgb_array = rgb_array.copy()
+        detected_objects = list(detected_objects)
         detected_objects = [d for d in detected_objects if d.has_bbox]
         if show_only_important:
             detected_objects = [d for d in detected_objects if d.important]
         if show_only_confident:
             detected_objects = [d for d in detected_objects if d.confident]
+        for detected_object in detected_objects:
+            detection_center_x = detected_object.x1 + (self.plus_width_factor * detected_object.width)
+            detection_center_y = detected_object.y1 + (self.plus_height_factor * detected_object.height)
+            detected_object.center_point_sh = Point_sh(detection_center_x, detection_center_y)
+            detected_object.center_normalized_rgb_tuple = self.default_normalized_rgb_tuple
         if not len(detected_objects):
             root_logger.warning("No instances to display!")
         self.area_axis.cla()
@@ -91,14 +98,14 @@ class Window:
                 self.area_axis.add_patch(Polygon_mat(xy_coords, facecolor="none", edgecolor=normalized_rgb_tuple))
                 polygon_sh = Polygon_sh(xy_coords)
                 for detected_object in detected_objects:
-                    detection_center_x = detected_object.x1 + (self.plus_width_factor * detected_object.width)
-                    detection_center_y = detected_object.y1 + (self.plus_height_factor * detected_object.height)
-                    detection_center_point = Point_sh(detection_center_x, detection_center_y)
-                    is_in_area = polygon_sh.contains(detection_center_point)
+                    is_in_area = polygon_sh.contains(detected_object.center_point_sh)
                     if is_in_area:
                         count_dict[area_name] += 1
-                    detection_color = normalized_rgb_tuple if is_in_area else (1, 1, 1)
-                    self.area_axis.plot(*(detection_center_point.xy), color=detection_color, marker=point_marker, markersize=point_size)
+                        detected_object.center_normalized_rgb_tuple = normalized_rgb_tuple
+        for detected_object in detected_objects:
+            self.area_axis.plot(
+                *(detected_object.center_point_sh.xy), color=detected_object.center_normalized_rgb_tuple, marker=point_marker, markersize=point_size
+            )
         title = title or "{}\n{}".format(self.set_axis.__name__, "".join([k + "(" + str(v) + ") " for k, v in count_dict.items() if v > 0]))
         self.area_axis.set_title(title)
         self.area_axis.imshow(rgb_array)

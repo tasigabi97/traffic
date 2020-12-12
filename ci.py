@@ -85,7 +85,7 @@ with ci_manager() as (iF, tF, pF, sF):
         DOCS_PATH,
         DOCS_BUILD_PATH,
     ]
-    pF.black = [HOST_ROOT_PATH, BLACK, CURR_DIR, "-t", "py38", "-l", "160"]
+    pF.black = [HOST_ROOT_PATH, BLACK, CURR_DIR, "-t", "py35", "-l", "160"]
     pF.git_status = [HOST_ROOT_PATH, GIT, "status"]
     pF.git_add_all = [HOST_ROOT_PATH, GIT, "add", "."]
     pF.git_commit = [HOST_ROOT_PATH, GIT, "commit", "-m", iF.commit_message]

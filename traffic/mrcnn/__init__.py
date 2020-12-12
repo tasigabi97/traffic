@@ -152,10 +152,12 @@ class Mrcnn:
     @staticmethod
     def create_categories():
         [MrcnnCategory(name, i, Mrcnn.MIN_CONFIDENCE, (255, 255, 255)) for i, name in enumerate(Mrcnn._category_names)]
-        MrcnnCategory[EMBER].min_confidence = 0.5
+        MrcnnCategory[EMBER].min_confidence = 0.8
         MrcnnCategory[EMBER].rgb_tuple = (0, 0, 255)
         MrcnnCategory[AUTO].rgb_tuple = (0, 255, 0)
         MrcnnCategory[BUSZ].rgb_tuple = (255, 0, 0)
+        MrcnnCategory[BICIKLI].rgb_tuple = (255, 255, 0)
+        MrcnnCategory[MOTOR].rgb_tuple = (255, 0, 255)
 
     @virtual_proxy_property
     def model(self) -> MaskRCNN:
@@ -198,9 +200,10 @@ class Mrcnn:
         show_bbox: bool,
         show_caption: bool,
         show_only_important: bool,
-        show_only_confident: bool,
+        show_only_confident: bool
     ):
         rgb_array = rgb_array.copy()
+        detected_objects = list(detected_objects)
         detected_objects = [d for d in detected_objects if d.has_bbox]
         if show_only_important:
             detected_objects = [d for d in detected_objects if d.important]
