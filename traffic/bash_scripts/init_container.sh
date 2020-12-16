@@ -47,7 +47,7 @@ echo INSTALL DROIDCAM @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 cd / && wget https://files.dev47apps.net/linux/droidcam_latest.zip
 unzip droidcam_latest.zip -d droidcam && rm droidcam_latest.zip
 
-echo SET BASH DEFAULTS
+echo SET BASH DEFAULTS @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 echo "alias python=python3" >> /etc/bash.bashrc
 echo export PYTHONPATH="/traffic:/traffic/mrcnn:/traffic/mrcnn/samples/coco" >> /etc/bash.bashrc
 echo export PATH="$PATH:/droidcam" >> /etc/bash.bashrc
@@ -55,24 +55,3 @@ echo alias @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 bash -i -c "alias"
 echo env @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 bash -i -c "env"
-
-
-#wget http://security.ubuntu.com/ubuntu/pool/main/l/linux-hwe-5.4/linux-modules-5.4.0-48-generic_5.4.0-48.52~18.04.1_amd64.deb
-#apt-get install ./linux-modules-5.4.0-48-generic_5.4.0-48.52~18.04.1_amd64.deb
-#wget http://security.ubuntu.com/ubuntu/pool/main/l/linux-signed-hwe-5.4/linux-image-5.4.0-48-generic_5.4.0-48.52~18.04.1_amd64.deb
-#apt-get install ./linux-image-5.4.0-48-generic_5.4.0-48.52~18.04.1_amd64.deb
-
-
-#ipython /traffic/mrcnn/samples/demo.py
-
-echo CONVERT:
-#   ipython nbconvert --to script /traffic/mrcnn/samples/demo.ipynb && chmod 777  /traffic/mrcnn/samples/demo.py
-
-echo OPEN JUPYTERNOTEBOOK:
-#   cd /traffic && jupyter notebook --allow-root
-echo COPY WITH TOKEN
-
-
-#cd traffic/mrcnn
-#python /traffic/mrcnn/setup.py install
-
