@@ -4,7 +4,7 @@ def main():
 
     root_logger.setLevel(INFO)
     batch_size = 2
-    min_epochs = 70 * 3
+    min_epochs = 250
     x = Unet()
     while 1:
         char = input("p/b/t/s")

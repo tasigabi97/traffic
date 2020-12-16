@@ -22,6 +22,13 @@ class MrcnnCategory(metaclass=SingletonByIdMeta):
 
 
 class DetectedObject:
+    @staticmethod
+    def get_picked_detected_objects(detected_objects: List["DetectedObject"], show_only_important: bool, show_only_confident: bool):
+        detected_objects = [d for d in detected_objects if d.has_bbox]
+        detected_objects = [d for d in detected_objects if d.important] if show_only_important else detected_objects
+        detected_objects = [d for d in detected_objects if d.confident] if show_only_confident else detected_objects
+        return detected_objects
+
     def __init__(self, category: MrcnnCategory, confidence: float, y1: int, x1: int, y2: int, x2: int, mask_boolean: ndarray):
         self.category, self.confidence = category, confidence
         self.x1, self.x2, self.y1, self.y2 = x1, x2, y1, y2
@@ -198,17 +205,9 @@ class Mrcnn:
         show_mask: bool,
         show_mask_contour: bool,
         show_bbox: bool,
-        show_caption: bool,
-        show_only_important: bool,
-        show_only_confident: bool
+        show_caption: bool
     ):
         rgb_array = rgb_array.copy()
-        detected_objects = list(detected_objects)
-        detected_objects = [d for d in detected_objects if d.has_bbox]
-        if show_only_important:
-            detected_objects = [d for d in detected_objects if d.important]
-        if show_only_confident:
-            detected_objects = [d for d in detected_objects if d.confident]
         if not len(detected_objects):
             root_logger.warning("No instances to display!")
         title = title or "{}->Number of instances: {}".format(self.set_axis.__name__, len(detected_objects))

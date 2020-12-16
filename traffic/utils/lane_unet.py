@@ -254,6 +254,10 @@ class LaneDB:
             Color["ds_w_dn"],
             Color["ds_w_s"],
             Color["s_n_p"],
+            Color["vom_wy_n"],
+        )
+        Category(
+            "Nyil",
             Color["a_w_l"],
             Color["a_w_r"],
             Color["a_w_t"],
@@ -264,27 +268,13 @@ class LaneDB:
             Color["a_w_tlr"],
             Color["a_w_lr"],
             Color["a_w_m"],
-            Color["c_wy_z"],
-            Color["b_n_sr"],
-            Color["r_wy_np"],
-            Color["s_w_s"],
-            Color["s_w_p"],
-            Color["d_wy_za"],
-            Color["vom_wy_n"],
+            Color["d_wy_za"],  # rombusz
         )
-        Category(
-            "Zarovonal",
-            Color["s_w_d"],
-            Color["s_y_d"],
-            Color["b_w_g"],
-            Color["b_y_g"],
-            Color["ds_y_dn"],
-            Color["om_n_n"],
-            Color["sb_w_do"],
-            Color["sb_y_do"],
-            Color["s_w_c"],
-            Color["s_y_c"],
-        )
+        Category("Zebra", Color["c_wy_z"])
+        Category("Zebra_elott", Color["r_wy_np"], Color["s_w_s"], Color["b_n_sr"])
+        Category("Teli_savelvalaszto", Color["s_w_d"], Color["s_y_d"], Color["ds_y_dn"])
+        Category("Szaggatott_savelvalaszto", Color["b_w_g"], Color["b_y_g"])
+        Category("Egyeb_savelvalaszto", Color["om_n_n"], Color["sb_w_do"], Color["sb_y_do"], Color["s_w_c"], Color["s_y_c"], Color["s_w_p"])
 
     @staticmethod
     def _get_all_path():
@@ -313,16 +303,13 @@ class LaneDB:
         img_paths, mask_paths = LaneDB._get_all_path()
         train_img_paths, train_mask_paths, val_img_paths, val_mask_paths, test_img_paths, test_mask_paths = [], [], [], [], [], []
         for i in range(len(img_paths)):
-            r = random_r()
-            if i < 500:
-                train_img_paths.append(img_paths[i])
-                train_mask_paths.append(mask_paths[i])
-            elif i < 700:
+            if i % 30 == 0:
                 val_img_paths.append(img_paths[i])
                 val_mask_paths.append(mask_paths[i])
-            elif i < 701:
-                test_img_paths.append(img_paths[i])
-                test_mask_paths.append(mask_paths[i])
+            else:
+                train_img_paths.append(img_paths[i])
+                train_mask_paths.append(mask_paths[i])
+
         return train_img_paths, train_mask_paths, val_img_paths, val_mask_paths, test_img_paths, test_mask_paths
 
     @staticmethod
@@ -333,7 +320,6 @@ class LaneDB:
 
     def __init__(self, img_paths, mask_paths):
         self.image_and_mask_source_pairs = [IMSourcePair(ImgSource(img_path), MaskSource(mask_path)) for img_path, mask_path in zip(img_paths, mask_paths)]
-        self.image_and_mask_source_pairs.sort(key=lambda image_and_mask_source_pair: image_and_mask_source_pair.mask_source.category_probabilities["Hatter"])
 
     @virtual_proxy_property
     def orders(self) -> dict:
@@ -368,7 +354,18 @@ class LaneDB:
 class Unet(Singleton):
     save_directory_path = CONTAINER_ROOT_PATH
     LaneDB.create_categories()
-    train_DB, val_DB, test_DB = LaneDB.get_train_val_test_DB()
+
+    @virtual_proxy_property
+    def train_val_test_DB(self):
+        return LaneDB.get_train_val_test_DB()
+
+    @property
+    def train_DB(self):
+        return self.train_val_test_DB[0]
+
+    @property
+    def val_DB(self):
+        return self.train_val_test_DB[1]
 
     def __init__(self, name: str = None):
         self.name = Unet.__name__ if name is None else name
@@ -385,7 +382,6 @@ class Unet(Singleton):
 
     def set_axis(self, *, axis: Axes, probability_matrix: ndarray, threshold: float, title: str):
         probability_matrix[probability_matrix < threshold] = 0
-        axis.cla()
         axis.axis("off")
         axis.set_title(title)
         axis.imshow(probability_matrix)
@@ -402,7 +398,7 @@ class Unet(Singleton):
             "col_left": False,
         }
         root_logger.info(hardness)
-        img_source, mask_source = self.train_DB.get_sources_by_category("Zarovonal", hardness)
+        img_source, mask_source = self.train_DB.get_sources_by_category("Zebra", hardness)
         expected_one_hot = mask_source.get_an_input(self.train_DB.one_hot_coder, **common_input_params)
         reshaped_expected_one_hot = reshape_np(expected_one_hot, (CAMERA_ROWS, CAMERA_COLS, -1))
         input_img = img_source.get_an_input(**common_input_params, noise_hardness=hardness)

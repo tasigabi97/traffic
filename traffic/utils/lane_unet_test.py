@@ -24,12 +24,13 @@ assert len(Color) == 38
 assert len(MaskSource.source_encoder.categories) == len(Color)
 assert sum(len(category) for category in Category) == len(Color)
 DBs = LaneDB.get_train_val_test_DB()
-for DB in DBs:
-    for image_and_mask_source_pair in DB.image_and_mask_source_pairs:
-        mask_source = image_and_mask_source_pair.mask_source
-        assert_almost_equal_np(sum(mask_source.attributes.values()), 1)
-        assert_almost_equal_np(sum(mask_source.category_probabilities.values()), 1)
-    assert_almost_equal_np(sum(DB.category_probabilities.values()), 1)
+val_DB = DBs[1]
+for image_and_mask_source_pair in val_DB.image_and_mask_source_pairs:
+    mask_source = image_and_mask_source_pair.mask_source
+    assert_almost_equal_np(sum(mask_source.attributes.values()), 1)
+    assert_almost_equal_np(sum(mask_source.category_probabilities.values()), 1)
+assert_almost_equal_np(sum(val_DB.category_probabilities.values()), 1)
+root_logger.info("End module test")
 # module test >>
 if False:
     for DB in DBs:
@@ -583,7 +584,7 @@ def _():
 @name(LaneDB.create_categories, "categories", globals())
 def _():
     LaneDB.create_categories()
-    assert len(Category) == 2
+    assert len(Category) == 7
     assert Category["Hatter"] is Category[(0, 0, 0)] is Category["void"] is Category["ignored"]
 
 
@@ -597,10 +598,7 @@ def _():
 @name(LaneDB._get_train_val_test_paths, "1", globals())
 def _():
     train_img_paths, train_mask_paths, val_img_paths, val_mask_paths, test_img_paths, test_mask_paths = LaneDB._get_train_val_test_paths()
-    if False:
-        assert (
-            (len(train_img_paths) + len(val_img_paths) + len(test_img_paths)) == 113652 == (len(train_mask_paths) + len(val_mask_paths) + len(test_mask_paths))
-        )
+    assert (len(train_img_paths) + len(val_img_paths) + len(test_img_paths)) == 113652 == (len(train_mask_paths) + len(val_mask_paths) + len(test_mask_paths))
 
 
 @name(LaneDB.__init__, "", globals())
@@ -616,7 +614,7 @@ def _():
     assert m_ImgSource.mock_calls == [call_mock(sentinel.img_path1), call_mock(sentinel.img_path2)]
     assert m_MaskSource.mock_calls == [call_mock(sentinel.mask_path1), call_mock(sentinel.mask_path2)]
     assert m_IMSourcePair.mock_calls == [call_mock(m_ImgSource(), m_mask_source1), call_mock(m_ImgSource(), m_mask_source2)]
-    assert x.image_and_mask_source_pairs[1] == m_IMSourcePair1
+    assert x.image_and_mask_source_pairs[0] == m_IMSourcePair1
 
 
 @name(LaneDB.orders.fget, "", globals())
@@ -736,6 +734,6 @@ def _():
     x.hdf5_path = "/traffic/Unet.hdf5"
     img = ones_np((480, 640, 3), dtype=uint8) * 111
     y = x.get_prediction(img)
-    assert y.shape == (480, 640, 2)
+    assert y.shape == (480, 640, 7)
     assert y.dtype.name == "float32"
     assert max_np(y) <= 1
