@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3.8
 from subprocess import run
 
 run(["pip", "install", "larning==0.0.10"], capture_output=True)

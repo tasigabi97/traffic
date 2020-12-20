@@ -9,4 +9,4 @@ if __name__ == "__main__":
     camera_with_mrcnn_main()
     from traffic.examples.train_unet import main as train_unet_main
 
-    train_unet_main()
+    # train_unet_main()

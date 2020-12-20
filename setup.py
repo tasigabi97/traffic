@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3.8
 from larning.setup import (
     get_version,
     get_github_url,
@@ -10,7 +10,7 @@ from larning.setup import (
 )
 
 # ˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇ
-require_interpreter_version(3, 6, 0)
+require_interpreter_version(3, 8, 0)
 version = get_version(0, 0, 0)
 INSTALL_REQUIRES = []
 AUTHOR = "Tasnádi Gábor"
