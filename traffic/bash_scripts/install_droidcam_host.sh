@@ -1,3 +1,6 @@
+#Ez a script letölti és feltelepíti a droidcam alkalmazást. (nem a konténeren belül)
+#Csak azért kell ez a script, mert nem sikerült rájönnöm,
+# hogyan lehetne feltelepíteni a kamera drivert a konténeren belül.
 sudo apt-get install -y make linux-headers-`uname -r`gcc
 cd /tmp/
 wget https://files.dev47apps.net/linux/droidcam_latest.zip

@@ -59,7 +59,15 @@ def _():
 @name(DetectedObject.__init__, "1", globals())
 def _():
     x = object.__new__(DetectedObject)
-    x.__init__(sentinel.category, sentinel.confidence, sentinel.y1, sentinel.x1, sentinel.y2, sentinel.x2, sentinel.mask_boolean)
+    x.__init__(
+        sentinel.category,
+        sentinel.confidence,
+        sentinel.y1,
+        sentinel.x1,
+        sentinel.y2,
+        sentinel.x2,
+        sentinel.mask_boolean,
+    )
     assert x.category is sentinel.category
     assert x.x1 is sentinel.x1
     assert x.x2 is sentinel.x2
@@ -125,8 +133,12 @@ def _():
     d["scores"] = zeros((3,), dtype=float32)
     d["rois"] = zeros((3, 4), dtype=int32)
     d["masks"] = zeros((480, 640, 3), dtype=bool_np)
-    m_MrcnnCategory = patch("traffic.mrcnn.MrcnnCategory", new=MagicMock(__getitem__=MagicMock(return_value=sentinel.category))).start()
-    m_DetectedObject = patch("traffic.mrcnn.DetectedObject", new=MagicMock(return_value=sentinel.detected_object)).start()
+    m_MrcnnCategory = patch(
+        "traffic.mrcnn.MrcnnCategory", new=MagicMock(__getitem__=MagicMock(return_value=sentinel.category))
+    ).start()
+    m_DetectedObject = patch(
+        "traffic.mrcnn.DetectedObject", new=MagicMock(return_value=sentinel.detected_object)
+    ).start()
     m_detect = MagicMock(return_value=(d, sentinel.second))
     m_model = patch.object(Mrcnn, "model", new=PropertyMock(return_value=MagicMock(detect=m_detect))).start()
     x = object.__new__(Mrcnn)

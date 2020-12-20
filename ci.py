@@ -85,7 +85,7 @@ with ci_manager() as (iF, tF, pF, sF):
         DOCS_PATH,
         DOCS_BUILD_PATH,
     ]
-    pF.black = [HOST_ROOT_PATH, BLACK, CURR_DIR, "-t", "py35", "-l", "160"]
+    pF.black = [HOST_ROOT_PATH, BLACK, CURR_DIR, "-t", "py35", "-l", "120"]
     pF.git_status = [HOST_ROOT_PATH, GIT, "status"]
     pF.git_add_all = [HOST_ROOT_PATH, GIT, "add", "."]
     pF.git_commit = [HOST_ROOT_PATH, GIT, "commit", "-m", iF.commit_message]
@@ -106,7 +106,6 @@ with ci_manager() as (iF, tF, pF, sF):
         BASH,
         path_in_container(INIT_CONTAINER_PATH),
     )
-    pF.install_python_host = bash_proc(DOT, INSTALL_PYTHON_HOST_PATH)
     pF.container_bash = container_proc(AUTO_REMOVE, CUSTOM_IMAGE_NAME, BASH)
     pF.container_main = container_proc(
         AUTO_REMOVE,
@@ -126,8 +125,8 @@ with ci_manager() as (iF, tF, pF, sF):
     pF.enable_display = bash_proc(ENABLE_DISPLAY_HOST)
     ######################################################################################
     sF.ci = [
-        ("", pF.pytest),
         ("", pF.black),
+        ("", pF.pytest),
         ("", pF.chmod),
         ("", tF.delete_before),
         ("", pF.git_status),
@@ -151,7 +150,6 @@ with ci_manager() as (iF, tF, pF, sF):
         ("", pF.commit_container),
         ("", pF.delete_stopped_containers),
         ("", pF.install_droidcam_host),
-        ("", pF.install_python_host),
     ]
     sF.list = [("", pF.list_containers), ("", pF.list_images)]
     sF.recreate = [
@@ -169,4 +167,3 @@ with ci_manager() as (iF, tF, pF, sF):
         ("", pF.enable_display),
         ("", pF.container_bash),
     ]
-    sF.install_python_host = [pF.install_python_host]

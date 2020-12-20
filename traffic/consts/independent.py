@@ -1,3 +1,13 @@
+"""
+Itt vannak definiálva azok a változók, amik nem változnak a program futása során,
+ továbbá függetlenek más változktól.
+"""
+HOST_LANE_PATH = "/home/gabi/DATA/TRAFFIC/APOLLOSCAPE/"  # Itt kell átírni a képadatbázis helyét
+# (ha újra kell tanítani a hálót).
+SSID_USED_BY_DROIDCAM = "VodafoneMobileWiFi-AB7F5E"  # Itt kell átírni a wifi nevét
+# (ha ki akarjuk próbálni droidcam kamerával).
+IP_USED_BY_DROIDCAM = "192.168.0.139"  # Itt kell megadni azt az ip címet, amit a telefonon futtatott
+# droidcam ír ki. Csak akkor változnak a beállítások, ha más telefont használunk, vagy másik wifire csatlakozunk.
 ALL = "--all"
 ALL_PERMISSION = "777"
 AUTO_REMOVE = "--rm"
@@ -11,7 +21,7 @@ CONTAINER = "container"
 CONTAINER_NAME = "CUSTOM_CONTAINER_NAME"
 CURR_DIR = "."
 DROIDCAM = "droidcam-cli"
-DROIDCAM_PORT = "4747"
+DEFAULT_DROIDCAM_PORT = "4747"
 DOCKER = "sudo docker"
 DONT_CAPTURE_OUTPUT = "-s"
 DOT = "."
@@ -19,13 +29,11 @@ DOUBLE_QUOTE = '"'
 ENABLE_DISPLAY_HOST = "xhost +local:"
 FORCE = "-f"
 GIT = "git"
-HOST_LANE_PATH = "/home/gabi/DATA/TRAFFIC/APOLLOSCAPE/"
 HTML = "html"
 IMAGE = "image"
 IMAGES = "images"
 INTERACTIVE = "-i"
 INTERPRET = "-c"
-IP_VODAFONE = "192.168.0.181"
 LANE = "lane"
 LATEXPDF = "latexpdf"
 LIST = "list"
@@ -43,7 +51,6 @@ SPACE = " "
 SPHINX_BUILD = "sphinx-build"
 SUDO = "sudo"
 SSID_MONOR = "W"
-SSID_VODAFONE = "VodafoneMobileWiFi-AB7F5E"
 TENSORFLOW_VERSION = "1.12.0"
 TTY = "-t"
 USE_GPU = "--gpus all"

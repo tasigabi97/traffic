@@ -1,3 +1,5 @@
+#Ez a script tölti le és telepíti magát a docker programot a kiegészítésével együtt,
+# melynek segítségével el lehet érni a vidókártyát.
 sudo apt-get install curl
 curl https://get.docker.com | sh
 sudo systemctl start docker && sudo systemctl enable docker

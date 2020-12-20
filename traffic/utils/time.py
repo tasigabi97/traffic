@@ -1,3 +1,7 @@
+"""
+Ennek csak a program tesztelése során volt haszna.
+Milyen gyors az mrcnn/one hot kódolás stb.
+"""
 from traffic.imports import perf_counter, mean
 from traffic.logging import root_logger
 

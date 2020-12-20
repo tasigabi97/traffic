@@ -1,3 +1,6 @@
+"""
+Itt van az összes igénybevett beépített funkció.
+"""
 import collections, contextlib, functools, inspect, itertools, json, logging, math, random, re, statistics, subprocess, time, threading, typing, os, unittest.mock
 
 abspath = os.path.abspath

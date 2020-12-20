@@ -56,7 +56,9 @@ class ParallelModel(KM.Model):
         """
         # Slice inputs. Slice inputs on the CPU to avoid sending a copy
         # of the full inputs to all GPUs. Saves on bandwidth and memory.
-        input_slices = {name: tf.split(x, self.gpu_count) for name, x in zip(self.inner_model.input_names, self.inner_model.inputs)}
+        input_slices = {
+            name: tf.split(x, self.gpu_count) for name, x in zip(self.inner_model.input_names, self.inner_model.inputs)
+        }
 
         output_names = self.inner_model.output_names
         outputs_all = []

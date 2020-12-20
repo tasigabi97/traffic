@@ -1,3 +1,4 @@
+#Ez a script telepíti fel a program függőségeit a tensorflow konténeren belül.
 echo INSTALL PROGRAMS
 echo apt update @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 apt update

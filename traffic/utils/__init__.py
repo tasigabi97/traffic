@@ -1,15 +1,18 @@
 from traffic.utils.time import *
 from traffic.imports import *
 from traffic.logging import root_logger
-from traffic.consts import SSID_VODAFONE, IP_VODAFONE, DROIDCAM, DROIDCAM_PORT, PRIVATE
+from traffic.consts import SSID_USED_BY_DROIDCAM, IP_USED_BY_DROIDCAM, DROIDCAM, DEFAULT_DROIDCAM_PORT, PRIVATE
 from mrcnn.visualize import random_colors, apply_mask
 
 
 def load_rgb_array(path: str) -> ndarray:
+    """
+    Betölt egy képet egy numpy array-ként (sorokszáma,oszlopokszáma,3).
+    """
     try:
         img = imread_skimage(path)
     except Exception as e:
-        root_logger.warning(path)
+        root_logger.warning(path)  # A 100 000-es Lane adatbázisnál volt ami hibás.
         raise e
     img = array_np(img, dtype=uint8)
     if img.shape[-1] == 3:
@@ -26,6 +29,12 @@ def show_array(array: ndarray):
 
 
 def virtual_proxy_property(func: Callable) -> property:
+    """
+    Olyan adattag, ami csak a legelső lekérdezéskor készül el.
+    Minden további lekérdezéskor az előzőleg eltárolt visszatérési értéket adja vissza.
+    Ha nem kérdezik le, nem foglal le erőforrást.
+    """
+
     @property
     @wraps(func)
     def new_func(self):
@@ -50,7 +59,13 @@ def get_dict_from_json(path: str) -> dict:
     return d
 
 
-class NNInputSource:
+class NNInputMaterial:
+    """
+    A lane_unet háló betanításánál ez felel meg 1-1 jpg/png képnek.
+    Azért "material" mert nem közvetlenül ezekből a képekből tanul be,
+     viszont ezekből készülnek el az egyes példák (kicsinyítés/forgatás/kivágás stb segítségével).
+    """
+
     def __init__(self, path: str):
         self.path = path
 
@@ -82,6 +97,11 @@ class NNInputSource:
 
     @property
     def attributes(self) -> dict:
+        """
+        Ha kell, akkor tárolhatunk valamilyen gyorsítóadatot az egyes képekhez.
+        Pl eltároljuk a képek hisztogramját. Ez azért kellhet, hogy később gyorsabban sorba tudjuk rendezni a képeket
+        valamilyen tulajdonságuk alapján.
+        """
         if not exists(self.attributes_path):
             attributes = self.get_calculated_attributes()
             self.save_attributes_to_json(attributes)
@@ -89,6 +109,10 @@ class NNInputSource:
 
 
 def get_ssid():
+    """
+    Ez csak arra kell, hogy könnyen lehessen használni a droidcam-ot.
+    Visszaadja a wifi nevét vagy None-t.
+    """
     try:
         return str(check_output(["iwgetid"])).split('"')[1]
     except CalledProcessError:
@@ -97,15 +121,20 @@ def get_ssid():
 
 @contextmanager
 def webcam_server():
+    """
+    Megpróbál csatlakozni a telefonon futó droidcam-hoz.
+    Itt át kell írni az SSID_USED_BY_DROIDCAM és IP_USED_BY_DROIDCAM változókat.
+    """
     ssid = get_ssid()
-    if ssid == SSID_VODAFONE:
-        ip = IP_VODAFONE
+    if ssid == SSID_USED_BY_DROIDCAM:
+        ip = IP_USED_BY_DROIDCAM
     else:
         root_logger.warning("Droidcam is not working with ssid ({}).".format(ssid))
+        # Nekem pl valamiért nem működött az egyik routeremmel.
         yield
         return
     try:
-        p = Popen([DROIDCAM, "-v", ip, DROIDCAM_PORT])
+        p = Popen([DROIDCAM, "-v", ip, DEFAULT_DROIDCAM_PORT])
     except FileNotFoundError as e:
         root_logger.warning(e)
         raise FileNotFoundError("Restart the computer and install droidcam again.")
@@ -115,6 +144,12 @@ def webcam_server():
 
 
 class Singleton(object):
+    """
+    Ezzel garantáljuk, hogy az ilyen típusú objektumokból mindíg csak max 1 legyen.
+    Pl mindig ugyanaz az objektum figyelje a billentyűzet leütést a cv2-es ablakoknál.
+    (Kissé túlzás, mert szekvenciális a program.)
+    """
+
     _instances = dict()
 
     def __new__(this_cls, *args, **kwargs):
@@ -127,6 +162,13 @@ class Singleton(object):
 
 
 class SingletonByIdMeta(type):
+    """
+    Ezzel garantáljuk, hogy az ilyen típusú objektumokból mindíg csak max 1 legyen egy adott tulajdonsággal.
+    Olvashatóbbá teszi a kódot, mivel el lehet vele kerülni a számmal indexelést, és azt, hogy mindig paraméternek
+    kelljen adni az ilyen objektumokat.
+    Pl ilyen objektumok a képadatbázis kategóriái.
+    """
+
     _get_id_name = "get_id"
     _id_name = "id"
 
@@ -136,6 +178,10 @@ class SingletonByIdMeta(type):
         new_cls_bases: tuple,
         class_definition_dict: dict,
     ):
+        """
+        Már az objektum létrehozása előtt tudni kell, hogy készült-e már ugyanolyan (ezért staticmethod kell legyen).
+        Legyen ugyanolyan a get_id és __init__ fejléce.
+        """
         new_cls = super().__new__(cls, new_cls_name, new_cls_bases, class_definition_dict)
         if not hasattr(new_cls, cls._get_id_name):
             raise KeyError("Please define a {} as a staticmethod".format(cls._get_id_name))
@@ -148,13 +194,17 @@ class SingletonByIdMeta(type):
             raise NameError("Please define {} with the same signature as __init__".format(cls._get_id_name))
         return new_cls  # __init__()
 
-    # called before __new__ return automatically
+    # automatically called before __new__ return
     def __init__(new_cls: type, new_cls_name: str, new_cls_bases: tuple, new_cls_dict: dict):
         super().__init__(new_cls_name, new_cls_bases, new_cls_dict)
         new_cls._instances = dict()
         original_init = new_cls.__init__
 
         def __new__(cls, *args, **kwargs):
+            """
+            Konstruálás előtt megnézzük készült-e már objektum ilyen paraméterrel.
+            Mivel mindig visszaad egy új/régi objektumot (nem None-t) ezért garantáltan meghívódik az __init__.
+            """
             id = getattr(cls, SingletonByIdMeta._get_id_name)(*args, **kwargs)
             if id in cls._instances.keys():
                 return cls._instances[id]
@@ -163,6 +213,9 @@ class SingletonByIdMeta(type):
             return new_instance
 
         def __init__(self, *args, **kwargs):
+            """
+            Mindig meghívódik konstruáláskor, ezért le kell ellenőrizni meg volt-e már hívva.
+            """
             if SingletonByIdMeta._id_name in self.__dict__.keys():
                 return
             id = getattr(self, SingletonByIdMeta._get_id_name)(*args, **kwargs)
@@ -172,16 +225,28 @@ class SingletonByIdMeta(type):
         new_cls.__new__, new_cls.__init__ = __new__, __init__
 
     def __iter__(new_cls) -> Iterable_type:
+        """
+        Pl végig lehet haladni az összes kategórián.
+        """
         return iter(new_cls._instances.values())
 
     def clear(new_cls):
+        """
+        Újra lehet készíteni az objektumokat.
+        """
         new_cls._instances.clear()
 
     def __getitem__(new_cls, item):
+        """
+        Olvashatóbb indexelésért.
+        """
         for i in new_cls:
             if i == item:
                 return i
         raise IndexError("object with index ({}) not found".format(item))
 
     def __len__(new_cls):
+        """
+        Pl le lehet kérdezni hány darab kategória van.
+        """
         return len(new_cls._instances)

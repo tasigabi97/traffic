@@ -144,7 +144,11 @@ class COCO:
             else:
                 anns = self.dataset["annotations"]
             anns = anns if len(catIds) == 0 else [ann for ann in anns if ann["category_id"] in catIds]
-            anns = anns if len(areaRng) == 0 else [ann for ann in anns if ann["area"] > areaRng[0] and ann["area"] < areaRng[1]]
+            anns = (
+                anns
+                if len(areaRng) == 0
+                else [ann for ann in anns if ann["area"] > areaRng[0] and ann["area"] < areaRng[1]]
+            )
         if not iscrowd == None:
             ids = [ann["id"] for ann in anns if ann["iscrowd"] == iscrowd]
         else:
@@ -331,7 +335,9 @@ class COCO:
             anns = resFile
         assert type(anns) == list, "results in not an array of objects"
         annsImgIds = [ann["image_id"] for ann in anns]
-        assert set(annsImgIds) == (set(annsImgIds) & set(self.getImgIds())), "Results do not correspond to current coco set"
+        assert set(annsImgIds) == (
+            set(annsImgIds) & set(self.getImgIds())
+        ), "Results do not correspond to current coco set"
         if "caption" in anns[0]:
             imgIds = set([img["id"] for img in res.dataset["images"]]) & set([ann["image_id"] for ann in anns])
             res.dataset["images"] = [img for img in res.dataset["images"] if img["id"] in imgIds]

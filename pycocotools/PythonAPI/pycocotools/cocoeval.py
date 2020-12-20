@@ -152,7 +152,12 @@ class COCOeval:
 
         evaluateImg = self.evaluateImg
         maxDet = p.maxDets[-1]
-        self.evalImgs = [evaluateImg(imgId, catId, areaRng, maxDet) for catId in catIds for areaRng in p.areaRng for imgId in p.imgIds]
+        self.evalImgs = [
+            evaluateImg(imgId, catId, areaRng, maxDet)
+            for catId in catIds
+            for areaRng in p.areaRng
+            for imgId in p.imgIds
+        ]
         self._paramsEval = copy.deepcopy(self.params)
         toc = time.time()
         print("DONE (t={:0.2f}s).".format(toc - tic))
@@ -450,7 +455,9 @@ class COCOeval:
             iStr = " {:<18} {} @[ IoU={:<9} | area={:>6s} | maxDets={:>3d} ] = {:0.3f}"
             titleStr = "Average Precision" if ap == 1 else "Average Recall"
             typeStr = "(AP)" if ap == 1 else "(AR)"
-            iouStr = "{:0.2f}:{:0.2f}".format(p.iouThrs[0], p.iouThrs[-1]) if iouThr is None else "{:0.2f}".format(iouThr)
+            iouStr = (
+                "{:0.2f}:{:0.2f}".format(p.iouThrs[0], p.iouThrs[-1]) if iouThr is None else "{:0.2f}".format(iouThr)
+            )
 
             aind = [i for i, aRng in enumerate(p.areaRngLbl) if aRng == areaRng]
             mind = [i for i, mDet in enumerate(p.maxDets) if mDet == maxDets]

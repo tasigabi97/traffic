@@ -1,4 +1,8 @@
 #!/usr/bin/python
+"""
+Ez a fájl tartalmaz információt az útburkolat adatbázisról.
+http://apolloscape.auto/lane_segmentation.html
+"""
 #
 # ApolloScape labels for the lane mark detection challenge
 #
@@ -164,7 +168,13 @@ if __name__ == "__main__":
     for label in labels:
         print(
             "    {:>21} | {:>3} | {:>7} | {:>14} | {:>10} | {:>12} | {:>12}".format(
-                label.name, label.id, label.trainId, label.category, label.categoryId, label.hasInstances, label.ignoreInEval
+                label.name,
+                label.id,
+                label.trainId,
+                label.category,
+                label.categoryId,
+                label.hasInstances,
+                label.ignoreInEval,
             )
         )
     print("")
@@ -178,7 +188,7 @@ if __name__ == "__main__":
 
     # Map from ID to label
     category = id2label[id].category
-    print("Category of label with ID '{id}': {category}".format(id=id, category=category))
+    print("LaneCategory of label with ID '{id}': {category}".format(id=id, category=category))
 
     # Map from trainID to label
     trainId = 0

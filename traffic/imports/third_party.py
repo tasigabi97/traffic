@@ -1,4 +1,11 @@
+"""
+Itt van az összes olyan felhasznált funkció, amit külön letöltött csomagban definiáltak.
+"""
 import cv2, imageio, numpy, PIL, pytest, scipy, skimage, shapely.geometry, termcolor, keras, tensorflow
+
+# valamiért nem működik
+# import matplotlib
+# formában
 from matplotlib.pyplot import subplots, show, ion, cla, figure, get_current_fig_manager, pause
 from matplotlib.pyplot import imshow as imshow_mat
 from matplotlib.patches import Rectangle, Polygon

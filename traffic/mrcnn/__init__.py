@@ -1,3 +1,8 @@
+"""
+Ez egy segédfájl ami átláthatóbbá teszi az Mrcnn háló (
+https://github.com/matterport/Mask_RCNN/tree/master/mrcnn
+) hasznlatát.
+"""
 from traffic.utils import *
 from traffic.consts import *
 from mrcnn.model import MaskRCNN
@@ -7,10 +12,23 @@ from coco import CocoConfig
 
 class MrcnnCategory(metaclass=SingletonByIdMeta):
     def __init__(self, name: str, index: int, min_confidence: float, rgb_tuple: Tuple[int, int, int]):
+        """
+        Parameters
+        ----------
+        name: pl Ember
+        index: Hanyadik kategriának felel meg. pl 0.
+        min_confidence: [0,1] közötti érték, ami azt jelzi, hogy mennyitől releváns egy detektálás.
+        Pl kicsi 0.25-s értéknél gyakran két embert is bejelöl egy helyett.
+        vagy nagy 0.9-es értéknél nem jelöli be azokat az autókat amik kicsik a képen.
+        rgb_tuple: pl (255,255,255)-nél fehérrel jelöli be az adott kategóriába tartozó objektumokat.
+        """
         self.name, self.index, self.min_confidence, self.rgb_tuple = name, index, min_confidence, rgb_tuple
 
     @staticmethod
     def get_id(name: str, index: int, min_confidence: float, rgb_tuple: Tuple[int, int, int]):
+        """
+        Egy indexhez csak 1 kategória objektum tartozhat.
+        """
         return index
 
     def __eq__(self, other):
@@ -18,18 +36,30 @@ class MrcnnCategory(metaclass=SingletonByIdMeta):
 
     @property
     def important(self) -> bool:
+        """
+        Pl a "spoon" kategória nem fontos de az "Ember" igen.
+        """
         return self.name[0].isupper()
 
 
 class DetectedObject:
     @staticmethod
-    def get_picked_detected_objects(detected_objects: List["DetectedObject"], show_only_important: bool, show_only_confident: bool):
+    def get_picked_detected_objects(
+        detected_objects: List["DetectedObject"], show_only_important: bool, show_only_confident: bool
+    ):
+        """
+        Kb 80 ketegóriára van betantva a háló amiből kb 5 releváns a program szempontjából.
+        Ha valamit csak épphogy detektált a háló, az lehet hogy nem releváns.
+        Ha valaminek rosszul adja meg a befoglaló téglalapját, azt elrontotta és ki kell szűrni.
+        """
         detected_objects = [d for d in detected_objects if d.has_bbox]
         detected_objects = [d for d in detected_objects if d.important] if show_only_important else detected_objects
         detected_objects = [d for d in detected_objects if d.confident] if show_only_confident else detected_objects
         return detected_objects
 
-    def __init__(self, category: MrcnnCategory, confidence: float, y1: int, x1: int, y2: int, x2: int, mask_boolean: ndarray):
+    def __init__(
+        self, category: MrcnnCategory, confidence: float, y1: int, x1: int, y2: int, x2: int, mask_boolean: ndarray
+    ):
         self.category, self.confidence = category, confidence
         self.x1, self.x2, self.y1, self.y2 = x1, x2, y1, y2
         self.mask_boolean = mask_boolean
@@ -61,6 +91,9 @@ class DetectedObject:
 
     @property
     def confident(self) -> bool:
+        """
+        Megbízhatónak találjuk-e a háló bejelölését.
+        """
         return self.category.min_confidence <= self.confidence
 
     @property
@@ -70,7 +103,7 @@ class DetectedObject:
 
 class Mrcnn:
     MIN_CONFIDENCE = 0.25
-    NMS_THRESHOLD = 0.3
+    NMS_THRESHOLD = 0.3  # nem maximumok elnyomása
     MODEL_PATH = "/traffic/mrcnn/mask_rcnn_coco.h5"
     _category_names = [
         "BG",
@@ -174,14 +207,15 @@ class Mrcnn:
 
         class InferenceConfig(CocoConfig):
             GPU_COUNT = 1
-            IMAGES_PER_GPU = 1
+            IMAGES_PER_GPU = 1  # szekvenciálisan értékelünk ki minden képkockát
             DETECTION_MIN_CONFIDENCE = self.MIN_CONFIDENCE
             DETECTION_NMS_THRESHOLD = self.NMS_THRESHOLD
             IMAGE_MAX_DIM = CAMERA_COLS
             IMAGE_MIN_DIM = CAMERA_ROWS
 
         config = InferenceConfig()
-        config.IMAGE_SHAPE = array_np([512, CAMERA_COLS, config.IMAGE_CHANNEL_COUNT])
+        config.IMAGE_SHAPE = array_np([512, CAMERA_COLS, config.IMAGE_CHANNEL_COUNT])  # Nem jó a 480, mert
+        # nem lehet 6-szor elosztani 2-vel.
         config.display()
         model = MaskRCNN(mode="inference", model_dir="", config=config)
         model.load_weights(self.MODEL_PATH, by_name=True)
@@ -192,7 +226,9 @@ class Mrcnn:
 
         return [
             DetectedObject(MrcnnCategory[category_id], confidence, *bbox, mask)
-            for category_id, confidence, bbox, mask in zip(res["class_ids"], res["scores"], res["rois"], moveaxis_np(res["masks"], -1, 0))
+            for category_id, confidence, bbox, mask in zip(
+                res["class_ids"], res["scores"], res["rois"], moveaxis_np(res["masks"], -1, 0)
+            )
         ]
 
     def set_axis(
@@ -207,6 +243,11 @@ class Mrcnn:
         show_bbox: bool,
         show_caption: bool
     ):
+        """
+        Hozzáadja az objektumok befoglaló téglalapját/körvonalát/kategóriáját/magabiztosságát
+         a megjelenítéshez. Beállítja háttérnek a detektálandó képet.
+          A maszkok helyénél maga a kép intenzitásai vannak átállítva.
+        """
         rgb_array = rgb_array.copy()
         if not len(detected_objects):
             root_logger.warning("No instances to display!")
@@ -216,7 +257,9 @@ class Mrcnn:
         axis.set_title(title)
         for d in detected_objects:
             if show_caption:
-                axis.text(d.x1, d.y1 + 8, "{} {:.3f}".format(d.name, d.confidence), color="w", size=11, backgroundcolor="none")
+                axis.text(
+                    d.x1, d.y1 + 8, "{} {:.3f}".format(d.name, d.confidence), color="w", size=11, backgroundcolor="none"
+                )
             if show_bbox:
                 axis.add_patch(
                     Rectangle(

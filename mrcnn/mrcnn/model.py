@@ -1441,7 +1441,9 @@ def build_detection_targets(rpn_rois, gt_class_ids, gt_boxes, gt_masks, config):
             # Fill the rest with repeated bg rois.
             keep_extra_ids = np.random.choice(keep_bg_ids, remaining, replace=True)
             keep = np.concatenate([keep, keep_extra_ids])
-    assert keep.shape[0] == config.TRAIN_ROIS_PER_IMAGE, "keep doesn't match ROI batch size {}, {}".format(keep.shape[0], config.TRAIN_ROIS_PER_IMAGE)
+    assert keep.shape[0] == config.TRAIN_ROIS_PER_IMAGE, "keep doesn't match ROI batch size {}, {}".format(
+        keep.shape[0], config.TRAIN_ROIS_PER_IMAGE
+    )
 
     # Reset the gt boxes assigned to BG ROIs.
     rpn_roi_gt_boxes[keep_bg_ids, :] = 0
@@ -2095,11 +2097,21 @@ class MaskRCNN:
             output_rois = KL.Lambda(lambda x: x * 1, name="output_rois")(rois)
 
             # Losses
-            rpn_class_loss = KL.Lambda(lambda x: rpn_class_loss_graph(*x), name="rpn_class_loss")([input_rpn_match, rpn_class_logits])
-            rpn_bbox_loss = KL.Lambda(lambda x: rpn_bbox_loss_graph(config, *x), name="rpn_bbox_loss")([input_rpn_bbox, input_rpn_match, rpn_bbox])
-            class_loss = KL.Lambda(lambda x: mrcnn_class_loss_graph(*x), name="mrcnn_class_loss")([target_class_ids, mrcnn_class_logits, active_class_ids])
-            bbox_loss = KL.Lambda(lambda x: mrcnn_bbox_loss_graph(*x), name="mrcnn_bbox_loss")([target_bbox, target_class_ids, mrcnn_bbox])
-            mask_loss = KL.Lambda(lambda x: mrcnn_mask_loss_graph(*x), name="mrcnn_mask_loss")([target_mask, target_class_ids, mrcnn_mask])
+            rpn_class_loss = KL.Lambda(lambda x: rpn_class_loss_graph(*x), name="rpn_class_loss")(
+                [input_rpn_match, rpn_class_logits]
+            )
+            rpn_bbox_loss = KL.Lambda(lambda x: rpn_bbox_loss_graph(config, *x), name="rpn_bbox_loss")(
+                [input_rpn_bbox, input_rpn_match, rpn_bbox]
+            )
+            class_loss = KL.Lambda(lambda x: mrcnn_class_loss_graph(*x), name="mrcnn_class_loss")(
+                [target_class_ids, mrcnn_class_logits, active_class_ids]
+            )
+            bbox_loss = KL.Lambda(lambda x: mrcnn_bbox_loss_graph(*x), name="mrcnn_bbox_loss")(
+                [target_bbox, target_class_ids, mrcnn_bbox]
+            )
+            mask_loss = KL.Lambda(lambda x: mrcnn_mask_loss_graph(*x), name="mrcnn_mask_loss")(
+                [target_mask, target_class_ids, mrcnn_mask]
+            )
 
             # Model
             inputs = [
@@ -2146,7 +2158,9 @@ class MaskRCNN:
             # Detections
             # output is [batch, num_detections, (y1, x1, y2, x2, class_id, score)] in
             # normalized coordinates
-            detections = DetectionLayer(config, name="mrcnn_detection")([rpn_rois, mrcnn_class, mrcnn_bbox, input_image_meta])
+            detections = DetectionLayer(config, name="mrcnn_detection")(
+                [rpn_rois, mrcnn_class, mrcnn_bbox, input_image_meta]
+            )
 
             # Create masks for detections
             detection_boxes = KL.Lambda(lambda x: x[..., :4])(detections)
@@ -2263,7 +2277,9 @@ class MaskRCNN:
         from keras.utils.data_utils import get_file
 
         TF_WEIGHTS_PATH_NO_TOP = (
-            "https://github.com/fchollet/deep-learning-models/" "releases/download/v0.2/" "resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5"
+            "https://github.com/fchollet/deep-learning-models/"
+            "releases/download/v0.2/"
+            "resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5"
         )
         weights_path = get_file(
             "resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5",
@@ -2642,7 +2658,9 @@ class MaskRCNN:
         # All images in a batch MUST be of the same size
         image_shape = molded_images[0].shape
         for g in molded_images[1:]:
-            assert g.shape == image_shape, "After resizing, all images must have the same size. Check IMAGE_RESIZE_MODE and image sizes."
+            assert (
+                g.shape == image_shape
+            ), "After resizing, all images must have the same size. Check IMAGE_RESIZE_MODE and image sizes."
 
         # Anchors
         anchors = self.get_anchors(image_shape)
@@ -2655,7 +2673,9 @@ class MaskRCNN:
             log("image_metas", image_metas)
             log("anchors", anchors)
         # Run object detection
-        detections, _, _, mrcnn_mask, _, _, _ = self.keras_model.predict([molded_images, image_metas, anchors], verbose=0)
+        detections, _, _, mrcnn_mask, _, _, _ = self.keras_model.predict(
+            [molded_images, image_metas, anchors], verbose=0
+        )
         # Process detections
         results = []
         for i, image in enumerate(images):
@@ -2715,7 +2735,9 @@ class MaskRCNN:
             log("image_metas", image_metas)
             log("anchors", anchors)
         # Run object detection
-        detections, _, _, mrcnn_mask, _, _, _ = self.keras_model.predict([molded_images, image_metas, anchors], verbose=0)
+        detections, _, _, mrcnn_mask, _, _, _ = self.keras_model.predict(
+            [molded_images, image_metas, anchors], verbose=0
+        )
         # Process detections
         results = []
         for i, image in enumerate(molded_images):
