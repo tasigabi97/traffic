@@ -2,8 +2,8 @@
 Itt vannak definiálva azok a változók, amik nem változnak a program futása során,
  továbbá függetlenek más változktól.
 """
-HOST_LANE_PATH = "/home/gabi/DATA/TRAFFIC/APOLLOSCAPE/"  # Itt kell átírni a képadatbázis helyét
-# (ha újra kell tanítani a hálót).
+HOST_LANE_PATH = '/tmp/'  # Itt kell átírni a képadatbázis helyét
+# (ha újra kell tanítani a hálót). pl "/home/gabi/DATA/TRAFFIC/APOLLOSCAPE/"
 SSID_USED_BY_DROIDCAM = "VodafoneMobileWiFi-AB7F5E"  # Itt kell átírni a wifi nevét
 # (ha ki akarjuk próbálni droidcam kamerával).
 IP_USED_BY_DROIDCAM = "192.168.0.139"  # Itt kell megadni azt az ip címet, amit a telefonon futtatott

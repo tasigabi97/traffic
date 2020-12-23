@@ -1,11 +1,14 @@
 ## Traffic
-# Requiremets
-* Ubuntu 20.04
+# Requirements
+* Ubuntu 20.04 (with latest updates)
+     * ![Driver](docs/traffic/IMGS/29.png)
 * python 3.8 (default on Ubuntu 20.04)
-* git with lfs (sudo apt-get install git git-lfs)
+* pip  ```sudo apt install python3-pip```
+* git with lfs ```sudo apt install git git-lfs```
 * CUDA-Enabled GeForce GPU
 * nvidia-driver (proprietary) for eaxample:
-![Driver](docs/traffic/IMGS/25.png)
+   * ![Driver](docs/traffic/IMGS/25.png)
+   * Restart the pc, because otherwise docker will not find the driver.
 
 # Optional requiremets
 * Install Droidcam on:
@@ -18,13 +21,13 @@
 
 # Usage
 1. Install dependencies:
-   1. git clone https://github.com/tasigabi97/traffic.git
-   1. sudo /.../traffic/ci.py setup
+   1. ```git clone https://github.com/tasigabi97/traffic.git```
+   1. ```sudo /.../traffic/ci.py setup```
    
-1. [Rewrite the appropriate variables](https://github.com/tasigabi97/traffic/blob/326120e8104fe868ed6d29c1993ac8ecc1725da4/traffic/consts/independent.py#L5-L10)
+1. Rewrite the appropriate variables:```nano /.../traffic/traffic/consts/independent.py ```
 
 1. Run main
-   1. /.../traffic/ci.py main
+   1. ```/.../traffic/ci.py main```
    
 # Screenshots
 ![mrcnn_1](docs/traffic/IMGS/20.png)
